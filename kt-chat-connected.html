@@ -301,7 +301,7 @@ td.cur, th.cur { background: var(--sunken); }
 
   /* ============ 설정: 여기만 바꾸면 됩니다 ============ */
   var CONFIG = {
-    chatUrl: 'https://yuno-da.app.n8n.cloud/webhook/3cee75b8-cd0d-40cf-b3d6-fd8da945b7ad/chat',
+    chatUrl: '/api/chat',   // server.js가 n8n(CHAT_URL)으로 전달합니다. file://로 열면 동작하지 않으니 npm start로 실행하세요
     customerId: 'C-0001',   // n8n에는 metadata.customerId로 함께 전달됩니다
     timeoutMs: 120000
   };
