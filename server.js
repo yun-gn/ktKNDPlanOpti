@@ -10,7 +10,7 @@ const CHAT_AUTH = process.env.CHAT_AUTH; // 선택: n8n 채팅 트리거에 인�
 const TIMEOUT_MS = 130000;               // 페이지의 timeoutMs(120초)보다 약간 길게
 const MAX_BODY = 64 * 1024;
 
-const html = fs.readFileSync(path.join(__dirname, 'kt-chat-connected.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
