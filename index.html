@@ -22,19 +22,20 @@
   --user-bg: #1A1D24;
   --user-fg: #F4F5F7;
   --bad: #B3261E;
+  --down: #0C7A55;
   --font-body: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0F1115; --surface: #181B21; --sunken: #1E222A; --ink: #ECEEF2; --muted: #98A0AE; --line: #2A2F39;
-    --accent: #FF5470; --on-accent: #1A0409; --user-bg: #2B303B; --user-fg: #ECEEF2; --bad: #FF8A80;
+    --accent: #FF5470; --on-accent: #1A0409; --user-bg: #2B303B; --user-fg: #ECEEF2; --bad: #FF8A80; --down: #4FD3A2;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0F1115; --surface: #181B21; --sunken: #1E222A; --ink: #ECEEF2; --muted: #98A0AE; --line: #2A2F39;
-  --accent: #FF5470; --on-accent: #1A0409; --user-bg: #2B303B; --user-fg: #ECEEF2; --bad: #FF8A80;
+  --accent: #FF5470; --on-accent: #1A0409; --user-bg: #2B303B; --user-fg: #ECEEF2; --bad: #FF8A80; --down: #4FD3A2;
   color-scheme: dark;
 }
 
@@ -74,26 +75,37 @@ button { cursor: pointer; }
 /* 상담 고객 선택: 예시 고객 4명 중 하나 */
 .customers { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .customers legend { padding: 0; margin-bottom: 6px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
-.cust { position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
-.cust input { position: absolute; opacity: 0; pointer-events: none; }
-.cust .nm { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cust:hover { border-color: var(--accent); }
-.cust:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.cust:has(input:checked) .nm { color: var(--accent); }
-.cust:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-.cust:has(input:disabled) { cursor: not-allowed; opacity: 0.55; }
-.cust:has(input:checked:disabled) { opacity: 1; }
+.pick { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+.pick input { position: absolute; opacity: 0; pointer-events: none; }
+.pick .nm { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick .nm small { font-family: var(--font-mono); font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 6px; }
+.pick .rate { font-size: 13px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick .why { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.pick:hover { border-color: var(--accent); }
+.pick:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.pick:has(input:checked) .nm { color: var(--accent); }
+.pick:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pick:has(input:disabled) { cursor: not-allowed; opacity: 0.55; }
+.pick:has(input:checked:disabled) { opacity: 1; }
 
 /* 본문: 왼쪽 고객 정보, 오른쪽 채팅 */
-.work { flex: 1; min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 12px; }
-.info { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-y: auto; min-width: 0; }
-.info summary { list-style: none; cursor: default; }
-.info summary::-webkit-details-marker { display: none; }
-.info-body { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
-.sum-id { display: none; }
-.info-id { font-family: var(--font-mono); font-size: 20px; font-weight: 500; letter-spacing: 0.02em; }
-.info-val { color: var(--muted); }
-.info-note { font-size: 12px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; margin: 0; }
+.work { flex: 1; min-height: 0; display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 12px; }
+.cust { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-y: auto; min-width: 0; }
+.cust summary { list-style: none; cursor: default; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.cust summary::-webkit-details-marker { display: none; }
+.cust .s-mob { display: none; }
+.cust-body { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
+.consent { font-size: 13px; color: var(--muted); margin: 0; }
+.who-name { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.who-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.field-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.plan-name { font-weight: 700; }
+.plan-price { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.scope { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font-size: 14px; }
+.scope li { display: flex; align-items: center; gap: 8px; }
+.scope svg { flex: 0 0 auto; }
+.scope.excluded { color: var(--muted); }
+.sample-note { font-size: 12px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; margin: 0; }
 
 .chat { min-height: 0; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; }
 .feed { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
@@ -116,6 +128,9 @@ button { cursor: pointer; }
 .btn:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); padding: 10px 16px; }
 .btn:disabled, .composer textarea:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn.mkt { padding: 10px 12px; white-space: nowrap; }
+.btn.mkt[aria-pressed="true"] { background: var(--sunken); border-color: var(--accent); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tag { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font-family: var(--font-body); font-size: 11px; letter-spacing: 0; }
 .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
 
 .dots { display: flex; gap: 5px; padding: 6px 0; }
@@ -143,12 +158,13 @@ thead th { font-weight: 700; }
 
 @media (max-width: 860px) {
   .work { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .info { padding: 10px 14px; overflow: visible; }
-  .info summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-  .info summary::after { content: '▾'; color: var(--muted); }
-  .sum-id { display: inline; margin-left: auto; margin-right: 10px; font-family: var(--font-mono); font-size: 13px; }
-  .info[open] summary::after { content: '▴'; }
-  .info-body { max-height: 40vh; overflow-y: auto; }
+  .cust { padding: 10px 14px; overflow: visible; }
+  .cust summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: 13px; color: var(--ink); }
+  .cust summary::after { content: '▾'; color: var(--muted); }
+  .cust[open] summary::after { content: '▴'; }
+  .cust .s-desk { display: none; }
+  .cust .s-mob { display: inline; }
+  .cust-body { max-height: 46vh; overflow-y: auto; }
 }
 @media (max-width: 600px) {
   .customers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -185,15 +201,43 @@ thead th { font-weight: 700; }
   </fieldset>
 
   <main class="work">
-  <details class="info" id="info">
-    <summary><span class="label">고객 정보</span><span class="sum-id" id="sumId"></span></summary>
-    <div class="info-body">
-      <div class="info-id" id="infoId"></div>
-      <div><div class="label">현재 요금제</div><div class="info-val">-</div></div>
-      <div><div class="label">선택 서비스</div><div class="info-val">-</div></div>
-      <div><div class="label">할인</div><div class="info-val">-</div></div>
-      <div><div class="label">가족결합</div><div class="info-val">-</div></div>
-      <p class="info-note">고객 정보는 아직 연결 전입니다.</p>
+  <details class="cust" id="cust">
+    <summary><span class="s-desk">분석용 고객 정보</span><span class="s-mob" id="custMob"></span></summary>
+    <div class="cust-body">
+      <p class="consent">고객 동의 범위 안의 최소 정보만 사용합니다.</p>
+      <div>
+        <div class="who-name" id="custName"></div>
+        <div class="who-meta" id="custMeta"></div>
+      </div>
+      <div>
+        <div class="field-label">현재 상품</div>
+        <div class="plan-name" id="custPlan"></div>
+        <div class="plan-price" id="custPrice"></div>
+      </div>
+      <div>
+        <div class="field-label">선택 부가서비스</div>
+        <div class="plan-price" id="custSvc"></div>
+      </div>
+      <div>
+        <div class="field-label">월평균 데이터 사용량</div>
+        <div class="plan-price" id="custUsage"></div>
+      </div>
+      <div>
+        <div class="field-label">분석 범위</div>
+        <ul class="scope">
+          <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="var(--down)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>요금제 정보</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="var(--down)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>데이터 이용량</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="var(--down)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>콘텐츠 이용 유형</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="var(--down)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>결합·할인 정보</li>
+        </ul>
+      </div>
+      <div>
+        <div class="field-label">분석에 쓰지 않음</div>
+        <ul class="scope excluded">
+          <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/></svg>이름 · 연락처 · 주소</li>
+        </ul>
+      </div>
+      <p class="sample-note">왼쪽 고객 정보는 2026-10-02에 조회한 값입니다. 답변 내용은 n8n 워크플로우가 돌려준 결과입니다.</p>
     </div>
   </details>
 
@@ -202,9 +246,10 @@ thead th { font-weight: 700; }
     <div class="composer">
       <form id="form" autocomplete="off">
         <textarea id="msg" rows="1" placeholder="메시지를 입력하세요" aria-label="메시지 입력"></textarea>
+        <button class="btn mkt" type="button" id="mkt" aria-pressed="false" title="다음 메시지 한 번만 마케팅 메시지 생성 Agent로 보냅니다">마케팅</button>
         <button class="btn primary" type="submit" id="send">전송</button>
       </form>
-      <div class="hint">Enter 전송 · Shift+Enter 줄바꿈 · 분석에 1~2분 걸릴 수 있습니다</div>
+      <div class="hint" id="hint">Enter 전송 · Shift+Enter 줄바꿈 · 분석에 1~2분 걸릴 수 있습니다</div>
     </div>
   </section>
   </main>
@@ -219,7 +264,21 @@ thead th { font-weight: 700; }
     timeoutMs: 120000,
     opsUrl: '',             // 운영 워크플로우(별도 Webhook) 주소. 비어 있으면 운영 버튼이 꺼진 채로 둡니다
     // 예시 고객 4명. id는 개인화 카탈로그의 user_id로 n8n에 그대로 전달됩니다. 첫 번째 고객이 기본 선택입니다
-    users: ['U01994', 'U05132', 'U00253', 'U00778'],
+    // 2026-10-02 ai_personalization 뷰 조회 값. 월평균은 2026-04~09 (완전한 6개월) 기준입니다
+    users: [
+      { id: 'U00603', name: '김수서', plan: '초이스90', fee: 90000, data: '무제한 · 5G',
+        services: ['티빙 스탠다드'], meta: '결합 없음 · KT 인터넷 없음', avgGb: 176.8,
+        reason: '적정 유지 확인 · 월 176.8GB 헤비 유저, 티빙 실사용' },
+      { id: 'U09832', name: '윤서준', plan: '베이직21GB(이월)', fee: 58000, data: '월 21GB · LTE/5G',
+        services: [], meta: '가족 정보 없음', avgGb: 71.1,
+        reason: '업셀 후보 · 제공 21GB에 월 71.1GB 사용' },
+      { id: 'U09327', name: '임서윤', plan: '초이스130', fee: 130000, data: '무제한 · 5G',
+        services: ['지니뮤직', '밀리의서재'], meta: '가족 정보 없음', avgGb: 5.2,
+        reason: '다운셀 후보 · 최고가 무제한에 월 5.2GB 사용' },
+      { id: 'U00864', name: '이현서', plan: '초이스 더블', fee: 120000, data: '무제한 · 5G',
+        services: ['Disney+ 스탠다드', '단말보험 멤버십 할인'], meta: 'KT 인터넷 보유 · 결합 없음', avgGb: 163.2,
+        reason: '결합 후보 · 인터넷 보유·미결합, Disney+ 사용 기록 없음' }
+    ],
     dataStart: '2025-10-24', // 조회 가능한 가장 이른 날짜
     defaultMonths: 6         // 기본 기간: 오늘로 끝나는 6개월
   };
@@ -316,12 +375,15 @@ thead th { font-weight: 700; }
   var fromIn = $('#from'), toIn = $('#to'), presets = $('#presets'), periodNote = $('#periodNote');
   var busy = false, curCtrl = null;
   // 고객마다 대화(n8n 메모리 세션)를 따로 둡니다. 고객을 바꿨다 돌아오면 이전 대화가 그대로 보입니다
-  var user = CONFIG.users[0], convs = {};
+  var user = CONFIG.users[0].id, convs = {};
+  var marketing = false;   // 다음 메시지 한 번만 마케팅 Agent로 보냅니다. 보내면 다시 꺼집니다
+  function info(id) { return CONFIG.users.filter(function (u) { return u.id === id; })[0]; }
+  function won(n) { return '월 ' + Number(n).toLocaleString('ko-KR') + '원'; }
   var DOTS = '<div class="dots" aria-label="응답 생성 중"><i></i><i></i><i></i></div>';
 
   function newId() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'sess-' + Date.now().toString(36) + Math.random().toString(36).slice(2); }
   function add(html) { feed.insertAdjacentHTML('beforeend', html); return feed.lastElementChild; }
-  function userRow(t) { return '<div class="row user"><div class="who">직원</div><div class="bubble">' + esc(t) + '</div></div>'; }
+  function userRow(t, mk) { return '<div class="row user"><div class="who">직원' + (mk ? '<span class="tag">마케팅 메시지</span>' : '') + '</div><div class="bubble">' + esc(t) + '</div></div>'; }
   function aiRow(inner) { return '<div class="row ai"><div class="who">AI</div><div class="bubble">' + inner + '</div></div>'; }
   function aiText(t) { return '<div class="md">' + (t.trim() ? md(t) : '<p>응답이 비어 있습니다. n8n의 Executions 탭에서 실행 기록을 확인해 보세요.</p>') + '</div>'; }
   function errorText(e) {
@@ -333,10 +395,18 @@ thead th { font-weight: 700; }
   function lock(b) { busy = b; msg.disabled = b; sendBtn.disabled = b; picker.disabled = b; if (!b) msg.focus(); }
   function fit() { msg.style.height = 'auto'; msg.style.height = Math.min(msg.scrollHeight, 160) + 'px'; }
 
-  async function send(text) {
+  function setMarketing(b) {
+    marketing = b;
+    $('#mkt').setAttribute('aria-pressed', b ? 'true' : 'false');
+    $('#hint').textContent = b ? '다음 메시지 한 번만 마케팅 메시지 생성 Agent로 보냅니다 · 비워 두고 전송해도 됩니다'
+      : 'Enter 전송 · Shift+Enter 줄바꿈 · 분석에 1~2분 걸릴 수 있습니다';
+  }
+
+  async function send(text, mk) {
     lock(true);
+    setMarketing(false);
     msg.value = ''; fit();
-    add(userRow(text));
+    add(userRow(text, mk));
     var row = add(aiRow(DOTS)); scrollDown();
     var bubble = row.querySelector('.bubble');
     var ctrl = new AbortController(); curCtrl = ctrl;
@@ -347,7 +417,7 @@ thead th { font-weight: 700; }
         headers: { 'Content-Type': 'application/json' },
         // chatInput은 Chat Trigger용, userMessage는 Webhook 트리거용 필드입니다 (같은 값). n8n에서는 $json.userId로 읽습니다
         body: JSON.stringify({ action: 'sendMessage', sessionId: convs[user], chatInput: text, userMessage: text,
-          userId: user, startDate: fromIn.value, endDate: toIn.value }),
+          userId: user, startDate: fromIn.value, endDate: toIn.value, marketing: mk }),
         signal: ctrl.signal
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -370,7 +440,7 @@ thead th { font-weight: 700; }
     if (curCtrl) { curCtrl.abort(); curCtrl = null; }
     convs[user] = newId();
     feed.innerHTML = '';
-    add(aiRow(aiText('**' + user + '** 고객을 선택했습니다. 무엇을 분석할까요?')));
+    add(aiRow(aiText('**' + info(user).name + '** (' + user + ') 고객을 선택했습니다. 무엇을 분석할까요?')));
     lock(false);
   }
   function pick(id) {
@@ -382,16 +452,27 @@ thead th { font-weight: 700; }
     else reset();
   }
 
-  picker.insertAdjacentHTML('beforeend', CONFIG.users.map(function (id, i) {
-    return '<label class="cust"><input type="radio" name="cust" value="' + esc(id) + '"' + (i === 0 ? ' checked' : '') + '>' +
-      '<span class="nm">' + esc(id) + '</span></label>';
+  picker.insertAdjacentHTML('beforeend', CONFIG.users.map(function (u, i) {
+    return '<label class="pick"><input type="radio" name="cust" value="' + esc(u.id) + '"' + (i === 0 ? ' checked' : '') + '>' +
+      '<span class="nm">' + esc(u.name) + '<small>' + esc(u.id) + '</small></span>' +
+      '<span class="rate">' + esc(u.plan) + ' · ' + won(u.fee) + '</span>' +
+      '<span class="why">' + esc(u.reason) + '</span></label>';
   }).join(''));
   picker.addEventListener('change', function (e) { pick(e.target.value); });
-  function showUser() { $('#infoId').textContent = $('#sumId').textContent = user; }
+  function showUser() {
+    var u = info(user);
+    $('#custName').textContent = u.name;
+    $('#custMeta').textContent = u.id + ' · ' + u.meta;
+    $('#custPlan').textContent = u.plan;
+    $('#custPrice').textContent = won(u.fee) + ' · ' + u.data;
+    $('#custSvc').textContent = u.services.length ? u.services.join(' · ') : '없음';
+    $('#custUsage').textContent = u.avgGb + 'GB (2026-04~09)';
+    $('#custMob').textContent = u.name + ' · ' + u.plan;
+  }
   showUser();
   // 넓은 화면에서는 고객 정보를 항상 펼치고, 좁은 화면에서는 접어 둡니다
-  var info = $('#info'), wide = window.matchMedia('(min-width: 861px)');
-  function syncInfo() { info.open = wide.matches; }
+  var custEl = $('#cust'), wide = window.matchMedia('(min-width: 861px)');
+  function syncInfo() { custEl.open = wide.matches; }
   if (wide.addEventListener) wide.addEventListener('change', syncInfo);
   syncInfo();
 
@@ -432,9 +513,11 @@ thead th { font-weight: 700; }
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     var t = msg.value.trim();
-    if (!t || busy) return;
+    if (busy) return;
+    if (!t && marketing) t = '마케팅 메시지를 만들어줘';
+    if (!t) return;
     if (!fromIn.checkValidity() || !toIn.checkValidity()) { syncPeriod(); fromIn.focus(); return; }
-    send(t);
+    send(t, marketing);
   });
   msg.addEventListener('keydown', function (e) {
     // 한글 조합 중 Enter는 무시해야 마지막 글자가 두 번 전송되지 않습니다
@@ -445,6 +528,7 @@ thead th { font-weight: 700; }
   });
   msg.addEventListener('input', fit);
   $('#reset').addEventListener('click', reset);
+  $('#mkt').addEventListener('click', function () { setMarketing(!marketing); msg.focus(); });
 
   reset();
 })();
