@@ -95,6 +95,7 @@ button { cursor: pointer; }
 .md ul, .md ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 2px; }
 .md blockquote { margin: 0; padding: 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--muted); }
 .md code { font-family: var(--font-mono); font-size: 13px; background: var(--surface); padding: 0 4px; border-radius: 4px; }
+.md li > ul { margin-top: 2px; }
 .md hr { border: 0; border-top: 1px solid var(--line); width: 100%; margin: 4px 0; }
 .md pre.code { margin: 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; }
 .md img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
@@ -200,10 +201,22 @@ thead th { font-weight: 700; }
       if (ul || ol) {
         var tag = ul ? 'ul' : 'ol';
         if (list !== tag) { closeList(); html += '<' + tag + '>'; list = tag; }
-        html += '<li>' + inline(esc((ul || ol)[1])) + '</li>'; i++; continue;
+        html += '<li>' + inline(esc((ul || ol)[1]));
+        i++;
+        // 들여쓴 하위 항목은 한 단계 안쪽 목록으로 묶습니다
+        var sub = [];
+        while (i < lines.length && /^\s{2,}[-*]\s+/.test(lines[i])) { sub.push(lines[i].replace(/^\s*[-*]\s+/, '')); i++; }
+        if (sub.length) html += '<ul>' + sub.map(function (s) { return '<li>' + inline(esc(s)) + '</li>'; }).join('') + '</ul>';
+        html += '</li>'; continue;
       }
       closeList();
-      if (/^\s*>\s?/.test(ln)) { html += '<blockquote>' + inline(esc(ln.replace(/^\s*>\s?/, ''))) + '</blockquote>'; i++; continue; }
+      if (/^\s*>/.test(ln)) {
+        // 연속된 인용 줄은 하나의 상자로 묶고, 안쪽도 마크다운으로 그립니다
+        var quote = [];
+        while (i < lines.length && /^\s*>/.test(lines[i])) { quote.push(lines[i].replace(/^\s*>\s?/, '')); i++; }
+        html += '<blockquote class="md">' + md(quote.join('\n')) + '</blockquote>';
+        continue;
+      }
       if (/^\s*(---+|\*\*\*+)\s*$/.test(ln)) { html += '<hr>'; i++; continue; }
       if (!ln.trim()) { i++; continue; }
       html += '<p>' + inline(esc(ln)) + '</p>'; i++;
