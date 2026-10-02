@@ -52,9 +52,22 @@ button, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.app { height: 100%; max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.app { height: 100%; max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
 
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.top-actions { display: flex; gap: 8px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
+
+/* 분석 기간 */
+.period { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+.period label { display: flex; flex-direction: column; gap: 4px; }
+.period input { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 14px; color: inherit; font-variant-numeric: tabular-nums; }
+.period input:invalid { border-color: var(--bad); }
+.period .tilde { padding-bottom: 8px; color: var(--muted); }
+.presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.presets .btn { padding: 7px 12px; }
+.presets .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.period-note { font-size: 12px; color: var(--muted); padding-bottom: 9px; }
 .brand { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
 .brand .kt { color: var(--accent); margin-right: 6px; letter-spacing: 0.02em; }
 
@@ -64,7 +77,6 @@ button { cursor: pointer; }
 .cust { position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
 .cust input { position: absolute; opacity: 0; pointer-events: none; }
 .cust .nm { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cust .nt { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cust:hover { border-color: var(--accent); }
 .cust:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .cust:has(input:checked) .nm { color: var(--accent); }
@@ -72,7 +84,18 @@ button { cursor: pointer; }
 .cust:has(input:disabled) { cursor: not-allowed; opacity: 0.55; }
 .cust:has(input:checked:disabled) { opacity: 1; }
 
-.chat { flex: 1; min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; }
+/* 본문: 왼쪽 고객 정보, 오른쪽 채팅 */
+.work { flex: 1; min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 12px; }
+.info { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-y: auto; min-width: 0; }
+.info summary { list-style: none; cursor: default; }
+.info summary::-webkit-details-marker { display: none; }
+.info-body { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
+.sum-id { display: none; }
+.info-id { font-family: var(--font-mono); font-size: 20px; font-weight: 500; letter-spacing: 0.02em; }
+.info-val { color: var(--muted); }
+.info-note { font-size: 12px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; margin: 0; }
+
+.chat { min-height: 0; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; }
 .feed { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
 
 .row { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
@@ -118,6 +141,15 @@ table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-nu
 th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
 thead th { font-weight: 700; }
 
+@media (max-width: 860px) {
+  .work { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .info { padding: 10px 14px; overflow: visible; }
+  .info summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .info summary::after { content: '▾'; color: var(--muted); }
+  .sum-id { display: inline; margin-left: auto; margin-right: 10px; font-family: var(--font-mono); font-size: 13px; }
+  .info[open] summary::after { content: '▴'; }
+  .info-body { max-height: 40vh; overflow-y: auto; }
+}
 @media (max-width: 600px) {
   .customers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .feed { padding: 14px; }
@@ -129,12 +161,41 @@ thead th { font-weight: 700; }
 <div class="app">
   <header class="top">
     <div class="brand"><span class="kt">KT</span>요금제 상담 AI</div>
-    <button class="btn" type="button" id="reset">새 대화</button>
+    <div class="top-actions">
+      <button class="btn" type="button" id="ops" disabled title="준비 중: 운영 워크플로우(별도 Webhook)를 새 탭으로 엽니다">운영</button>
+      <button class="btn" type="button" id="reset">새 대화</button>
+    </div>
   </header>
 
+  <div class="period" role="group" aria-label="분석 기간">
+    <label><span class="label">시작일</span><input type="date" id="from" required></label>
+    <span class="tilde">~</span>
+    <label><span class="label">종료일</span><input type="date" id="to" required></label>
+    <div class="presets" id="presets">
+      <button class="btn" type="button" data-months="1">1개월</button>
+      <button class="btn" type="button" data-months="3">3개월</button>
+      <button class="btn" type="button" data-months="6">6개월</button>
+      <button class="btn" type="button" data-months="12">12개월</button>
+    </div>
+    <span class="period-note" id="periodNote"></span>
+  </div>
+
   <fieldset class="customers" id="customers">
-    <legend>상담 고객</legend>
+    <legend class="label">상담 고객</legend>
   </fieldset>
+
+  <main class="work">
+  <details class="info" id="info">
+    <summary><span class="label">고객 정보</span><span class="sum-id" id="sumId"></span></summary>
+    <div class="info-body">
+      <div class="info-id" id="infoId"></div>
+      <div><div class="label">현재 요금제</div><div class="info-val">-</div></div>
+      <div><div class="label">선택 서비스</div><div class="info-val">-</div></div>
+      <div><div class="label">할인</div><div class="info-val">-</div></div>
+      <div><div class="label">가족결합</div><div class="info-val">-</div></div>
+      <p class="info-note">고객 정보는 아직 연결 전입니다.</p>
+    </div>
+  </details>
 
   <section class="chat" aria-label="AI 상담 채팅">
     <div class="feed" id="feed" role="log" aria-live="polite"></div>
@@ -146,6 +207,7 @@ thead th { font-weight: 700; }
       <div class="hint">Enter 전송 · Shift+Enter 줄바꿈 · 분석에 1~2분 걸릴 수 있습니다</div>
     </div>
   </section>
+  </main>
 </div>
 
 <script>
@@ -155,13 +217,11 @@ thead th { font-weight: 700; }
   var CONFIG = {
     chatUrl: '/api/chat',   // server.js가 n8n(CHAT_URL)으로 전달합니다. file://로 열면 동작하지 않으니 npm start로 실행하세요
     timeoutMs: 120000,
+    opsUrl: '',             // 운영 워크플로우(별도 Webhook) 주소. 비어 있으면 운영 버튼이 꺼진 채로 둡니다
     // 예시 고객 4명. id는 개인화 카탈로그의 user_id로 n8n에 그대로 전달됩니다. 첫 번째 고객이 기본 선택입니다
-    users: [
-      { id: 'USER_ID_1', name: '예시 고객 1', note: '설명 입력' },
-      { id: 'USER_ID_2', name: '예시 고객 2', note: '설명 입력' },
-      { id: 'USER_ID_3', name: '예시 고객 3', note: '설명 입력' },
-      { id: 'USER_ID_4', name: '예시 고객 4', note: '설명 입력' }
-    ]
+    users: ['U01994', 'U05132', 'U00253', 'U00778'],
+    dataStart: '2025-10-24', // 조회 가능한 가장 이른 날짜
+    defaultMonths: 6         // 기본 기간: 오늘로 끝나는 6개월
   };
 
   function esc(s) {
@@ -253,6 +313,7 @@ thead th { font-weight: 700; }
   /* ============ 화면 ============ */
   var $ = function (s) { return document.querySelector(s); };
   var feed = $('#feed'), msg = $('#msg'), form = $('#form'), sendBtn = $('#send'), picker = $('#customers');
+  var fromIn = $('#from'), toIn = $('#to'), presets = $('#presets'), periodNote = $('#periodNote');
   var busy = false, curCtrl = null;
   // 고객마다 대화(n8n 메모리 세션)를 따로 둡니다. 고객을 바꿨다 돌아오면 이전 대화가 그대로 보입니다
   var user = CONFIG.users[0], convs = {};
@@ -285,7 +346,8 @@ thead th { font-weight: 700; }
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // chatInput은 Chat Trigger용, userMessage는 Webhook 트리거용 필드입니다 (같은 값). n8n에서는 $json.userId로 읽습니다
-        body: JSON.stringify({ action: 'sendMessage', sessionId: convs[user.id], chatInput: text, userMessage: text, userId: user.id }),
+        body: JSON.stringify({ action: 'sendMessage', sessionId: convs[user], chatInput: text, userMessage: text,
+          userId: user, startDate: fromIn.value, endDate: toIn.value }),
         signal: ctrl.signal
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -306,29 +368,73 @@ thead th { font-weight: 700; }
   var saved = {};   // 고객별 화면 내용
   function reset() {
     if (curCtrl) { curCtrl.abort(); curCtrl = null; }
-    convs[user.id] = newId();
+    convs[user] = newId();
     feed.innerHTML = '';
-    add(aiRow(aiText('**' + user.name + '** 고객을 선택했습니다. 무엇을 분석할까요?')));
+    add(aiRow(aiText('**' + user + '** 고객을 선택했습니다. 무엇을 분석할까요?')));
     lock(false);
   }
   function pick(id) {
-    if (busy || id === user.id) return;
-    saved[user.id] = feed.innerHTML;
-    user = CONFIG.users.filter(function (u) { return u.id === id; })[0];
-    if (saved[user.id]) { feed.innerHTML = saved[user.id]; scrollDown(); msg.focus(); }
+    if (busy || id === user) return;
+    saved[user] = feed.innerHTML;
+    user = id;
+    showUser();
+    if (saved[user]) { feed.innerHTML = saved[user]; scrollDown(); msg.focus(); }
     else reset();
   }
 
-  picker.insertAdjacentHTML('beforeend', CONFIG.users.map(function (u, i) {
-    return '<label class="cust"><input type="radio" name="cust" value="' + esc(u.id) + '"' + (i === 0 ? ' checked' : '') + '>' +
-      '<span class="nm">' + esc(u.name) + '</span><span class="nt">' + esc(u.note || u.id) + '</span></label>';
+  picker.insertAdjacentHTML('beforeend', CONFIG.users.map(function (id, i) {
+    return '<label class="cust"><input type="radio" name="cust" value="' + esc(id) + '"' + (i === 0 ? ' checked' : '') + '>' +
+      '<span class="nm">' + esc(id) + '</span></label>';
   }).join(''));
   picker.addEventListener('change', function (e) { pick(e.target.value); });
+  function showUser() { $('#infoId').textContent = $('#sumId').textContent = user; }
+  showUser();
+  // 넓은 화면에서는 고객 정보를 항상 펼치고, 좁은 화면에서는 접어 둡니다
+  var info = $('#info'), wide = window.matchMedia('(min-width: 861px)');
+  function syncInfo() { info.open = wide.matches; }
+  if (wide.addEventListener) wide.addEventListener('change', syncInfo);
+  syncInfo();
+
+  /* ---------- 분석 기간 ---------- */
+  function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function minusMonths(s, n) {
+    var p = s.split('-').map(Number), m = p[1] - 1 - n;
+    var last = new Date(p[0], m + 1, 0).getDate();   // 3/31에서 1개월 전은 2/28(29)로 맞춥니다
+    return iso(new Date(p[0], m, Math.min(p[2], last)));
+  }
+  var today = iso(new Date());
+  function presetStart(n) { var s = minusMonths(today, n); return s < CONFIG.dataStart ? CONFIG.dataStart : s; }
+  function syncPeriod() {
+    fromIn.max = toIn.value || today;
+    toIn.min = fromIn.value || CONFIG.dataStart;
+    presets.querySelectorAll('[data-months]').forEach(function (b) {
+      var on = toIn.value === today && fromIn.value === presetStart(Number(b.dataset.months));
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    var ok = fromIn.checkValidity() && toIn.checkValidity();
+    periodNote.textContent = !ok ? CONFIG.dataStart + ' ~ ' + today + ' 사이에서 시작일이 종료일보다 앞서야 합니다'
+      : fromIn.value === CONFIG.dataStart ? CONFIG.dataStart + '부터 데이터가 있습니다' : '';
+  }
+  function setMonths(n) { toIn.value = today; fromIn.value = presetStart(n); syncPeriod(); }
+  fromIn.min = toIn.min = CONFIG.dataStart;
+  fromIn.max = toIn.max = today;
+  presets.addEventListener('click', function (e) { var b = e.target.closest('[data-months]'); if (b) setMonths(Number(b.dataset.months)); });
+  fromIn.addEventListener('input', syncPeriod);
+  toIn.addEventListener('input', syncPeriod);
+  setMonths(CONFIG.defaultMonths);
+
+  var ops = $('#ops');
+  if (CONFIG.opsUrl) {
+    ops.disabled = false;
+    ops.addEventListener('click', function () { window.open(CONFIG.opsUrl, '_blank', 'noopener'); });
+  }
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     var t = msg.value.trim();
-    if (t && !busy) send(t);
+    if (!t || busy) return;
+    if (!fromIn.checkValidity() || !toIn.checkValidity()) { syncPeriod(); fromIn.focus(); return; }
+    send(t);
   });
   msg.addEventListener('keydown', function (e) {
     // 한글 조합 중 Enter는 무시해야 마지막 글자가 두 번 전송되지 않습니다
