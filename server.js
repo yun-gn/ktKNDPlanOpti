@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
-const CHAT_URL = process.env.CHAT_URL || 'https://yuno-da.app.n8n.cloud/webhook/3cee75b8-cd0d-40cf-b3d6-fd8da945b7ad/chat';
+const CHAT_URL = process.env.CHAT_URL || 'https://yuno-da.app.n8n.cloud/webhook/e23f1ef5-3711-4e17-ba3b-864d19a1c525';
 const CHAT_AUTH = process.env.CHAT_AUTH; // 선택: n8n 채팅 트리거에 인증을 켰을 때의 Authorization 헤더 값
 const TIMEOUT_MS = 130000;               // 페이지의 timeoutMs(120초)보다 약간 길게
 const MAX_BODY = 64 * 1024;
