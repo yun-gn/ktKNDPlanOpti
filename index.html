@@ -289,7 +289,9 @@ thead th { font-weight: 700; }
     chatUrl: '/api/chat',   // server.js가 n8n(CHAT_URL)으로 전달합니다. file://로 열면 동작하지 않으니 npm start로 실행하세요
     timeoutMs: 120000,       // 한 번에 받기: n8n Cloud가 약 100초에서 끊으므로 그보다 길게 기다려도 소용없습니다
     streamTimeoutMs: 600000, // 스트리밍: 마케팅 보고서는 3분 넘게 걸리기도 합니다
-    stream: true,            // true: 답을 생성되는 대로 보여줍니다. false: 다 만든 뒤 한 번에 받습니다(약 100초 넘는 답은 실패)
+    // false: 다 만든 뒤 한 번에 받습니다. 요금제 검토 보고서는 Respond to Webhook1(v1.4)이 보내는데, 이 노드는 스트리밍 응답에 쓰지 못해
+    // 스트리밍으로 받으면 보고서 대신 중간 Agent의 JSON만 옵니다. 검토는 10초 안팎, 후속 질문은 2초 안팎이라 100초 제한에 걸리지 않습니다
+    stream: false,
     opsUrl: '',             // 운영 워크플로우(별도 Webhook) 주소. 비어 있으면 운영 버튼이 꺼진 채로 둡니다
     idPattern: /^U\d{5}$/,   // 고객 ID 형식: U + 숫자 5자리 (예: U00603)
     // 후보 고객 4명: 카드로 보여 주고 왼쪽 패널에 정보를 채웁니다. 입력한 ID가 여기 없어도 n8n에는 그대로 전달됩니다
