@@ -70,7 +70,6 @@ h1{font-size:22px;line-height:1.25;margin:0;font-weight:650;text-wrap:balance}
 .qid{font:11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:2px 6px;white-space:nowrap}
 .tbtn{font:inherit;font-size:12px;min-height:28px;padding:0 10px;border:1px solid var(--axis);background:var(--surface);color:var(--ink);border-radius:6px;cursor:pointer}
 .tbtn:hover{background:var(--wash)}
-.switch{float:right;display:inline-flex;align-items:center;text-decoration:none;min-height:32px;padding:0 14px;font-size:14px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);align-items:center}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .sw{width:10px;height:10px;border-radius:2px;display:inline-block}
@@ -134,7 +133,6 @@ text.hl{fill:var(--ink);font-weight:700}
 
 <div class="wrap">
   <header>
-    <a class="tbtn switch" href="/" title="상담 화면으로 돌아갑니다">상담</a>
     <h1>고객 운영 대시보드</h1>
     <p class="lede">운영 영역의 집계·가명 데이터를 조회합니다. 가입·가족은 현재 스냅샷이며, 사용량은 선택 월 기준입니다.</p>
   </header>
@@ -370,14 +368,22 @@ const QUERY_CONTRACTS = {
 };
 // 웹훅 URL은 고정한다. as_of_date는 OPS_002의 기본 기준일이며 화면에서 변경할 수 있다.
 // OPS_017은 아래 별도 상수로 2026-09-30에 고정한다. DB 인증 정보는 넣지 않는다.
-// POST 요청: { query_id, parameters }
-// 정상 응답: { ok: true, query_id, rows: [...] } (빈 결과는 rows: [])
-// 실패 응답: { ok: false, query_id, error: { code, message } }
+// POST 요청: { queries: [{ query_id, parameters }, ...] }
+// 응답: { results: [{ query_id, parameters, ok: true, rows: [...] }, ...] }
+// 개별 실패: { query_id, parameters, ok: false, error: { code, message } }
+// n8n은 요청의 query_id와 parameters를 그대로 반환한다. 결과 순서는 달라도 된다.
 const CONFIG = {
     webhook_url: 'https://yuno-da.app.n8n.cloud/webhook/5c3aecf3-87ee-404a-b6fc-af8c2dbe1c18',
     as_of_date: '2026-09-30',
-    timeout_ms: 35000,
-    concurrency: 3
+    // 최초 선택 월. 빈 값이면 한국 시간 기준 직전 월을 사용한다.
+    // 최초 요청 전에 프론트에서 월을 정하므로 전체 쿼리를 한 번에 보낸다.
+    year_month: '',
+    // 빈 값이면 한국 시간의 현재 월까지 최근 120개월을 조회한다.
+    // 기간을 직접 지정할 때는 둘 다 YYYY-MM-01 형식으로 입력한다.
+    from_month: '',
+    to_month: '',
+    timeout_ms: 90000,
+    concurrency: 2
 };
 const OPS_017_AS_OF_DATE = '2026-09-30';
 const AGE = ['8-12','13-18','19-24','25-34','35-49','50-64','65+'];
@@ -454,8 +460,74 @@ function normalizeRows(query_id, rows, parameters) {
     }
     return normalized;
 }
-async function requestQuery(query_id, parameters, context) {
-    validateParameters(query_id,parameters);
+function queryRequest(query_id, parameters) {
+    return {query_id:query_id,parameters:parameters};
+}
+function querySignature(query) {
+    const parameters={};
+    Object.keys(query.parameters).sort().forEach(function(key){parameters[key]=query.parameters[key];});
+    return JSON.stringify({query_id:query.query_id,parameters:parameters});
+}
+// 차트에서 데이터를 찾기 위한 내부 키이며 요청에는 포함하지 않는다.
+function chartDataKey(query) {
+    if (query.query_id==='OPS_020') return query.query_id+':'+query.parameters.year_month+':'+query.parameters.top_percent;
+    if (['OPS_025','OPS_028'].includes(query.query_id)) return query.query_id+':'+query.parameters.year_month;
+    return query.query_id;
+}
+function initialYearMonth() {
+    if (CONFIG.year_month) {
+        validateParameters('OPS_025',{year_month:CONFIG.year_month});
+        return CONFIG.year_month;
+    }
+    const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+    const year=parts.find(function(part){return part.type==='year';}).value;
+    const month=parts.find(function(part){return part.type==='month';}).value;
+    const previous=new Date(year+'-'+month+'-01T00:00:00Z');
+    previous.setUTCMonth(previous.getUTCMonth()-1);
+    return previous.toISOString().slice(0,7);
+}
+function usageSummaryParameters() {
+    if (CONFIG.from_month || CONFIG.to_month) {
+        const parameters={from_month:CONFIG.from_month,to_month:CONFIG.to_month};
+        validateParameters('OPS_018',parameters);
+        return parameters;
+    }
+    const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+    const year=parts.find(function(part){return part.type==='year';}).value;
+    const month=parts.find(function(part){return part.type==='month';}).value;
+    const to_month=year+'-'+month+'-01';
+    const first=new Date(to_month+'T00:00:00Z');
+    first.setUTCMonth(first.getUTCMonth()-119);
+    return {from_month:first.toISOString().slice(0,10),to_month:to_month};
+}
+// 화면에서 필요한 모든 쿼리를 한 목록에 둔다. 변경 시 여기의 항목만 수정한다.
+function dashboardQueries(as_of_date,year_month) {
+    return [
+        queryRequest('OPS_014',{limit:200}),
+        queryRequest('OPS_017',{as_of_date:OPS_017_AS_OF_DATE}),
+        queryRequest('OPS_002',{as_of_date:as_of_date}),
+        queryRequest('OPS_023',{}),
+        queryRequest('OPS_015',{}),
+        queryRequest('OPS_018',usageSummaryParameters()),
+        queryRequest('OPS_025',{year_month:year_month}),
+        queryRequest('OPS_028',{year_month:year_month})
+    ].concat(PCT.map(function(percent) {
+        return queryRequest('OPS_020',{year_month:year_month,top_percent:percent});
+    }));
+}
+function validateBatch(queries) {
+    if (!Array.isArray(queries) || !queries.length) throw new Error('queries는 비어 있지 않은 배열이어야 합니다.');
+    const signatures=new Set();
+    queries.forEach(function(query) {
+        if (!query || Object.keys(query).sort().join(',')!=='parameters,query_id') throw new Error('각 요청 항목에는 query_id와 parameters만 넣으세요.');
+        validateParameters(query.query_id,query.parameters);
+        const signature=querySignature(query);
+        if (signatures.has(signature)) throw new Error('동일한 쿼리와 파라미터가 중복되었습니다.');
+        signatures.add(signature);
+    });
+}
+async function requestBatch(queries, context) {
+    validateBatch(queries);
     if (context.controller.signal.aborted) throw new DOMException('취소된 요청','AbortError');
     const controller = new AbortController();
     const abort = function() { controller.abort(); };
@@ -464,14 +536,23 @@ async function requestQuery(query_id, parameters, context) {
     try {
         const response = await fetch(context.webhook_url, {
             method:'POST', headers:{'Content-Type':'application/json'}, credentials:'omit',
-            body:JSON.stringify({query_id:query_id,parameters:parameters}), signal:controller.signal
+            body:JSON.stringify({queries:queries}), signal:controller.signal
         });
         if (!response.ok) throw new Error('HTTP ' + response.status + ': 웹훅 실행에 실패했습니다.');
         const body = await response.json();
-        if (!body || body.query_id !== query_id) throw new Error('응답 query_id가 요청과 다릅니다. n8n 응답 형식을 확인하세요.');
+        if (!body || Array.isArray(body)) throw new Error('묶음 응답은 results 배열을 포함한 JSON 객체여야 합니다.');
         if (body.ok === false) throw new Error(body.error && typeof body.error.message === 'string' ? body.error.message : '쿼리 실행에 실패했습니다.');
-        if (body.ok !== true) throw new Error('응답에 ok: true 또는 ok: false가 필요합니다.');
-        return normalizeRows(query_id,body.rows,parameters);
+        if (!Array.isArray(body.results)) throw new Error('응답에 results 배열이 필요합니다.');
+        const expected=new Set(queries.map(querySignature));
+        const results=new Map();
+        body.results.forEach(function(result) {
+            if (!result) throw new Error('응답 항목이 올바르지 않습니다.');
+            validateParameters(result.query_id,result.parameters);
+            const signature=querySignature(result);
+            if (!expected.has(signature) || results.has(signature)) throw new Error('응답의 쿼리·파라미터가 요청 목록과 다르거나 중복되었습니다.');
+            results.set(signature,result);
+        });
+        return results;
     } catch (error) {
         if (context.controller.signal.aborted) throw new DOMException('취소된 요청','AbortError');
         if (error.name === 'AbortError') throw new Error('조회 시간이 초과되었습니다. 다시 시도하세요.');
@@ -483,7 +564,7 @@ async function requestQuery(query_id, parameters, context) {
     }
 }
 function createContext(webhook_url,as_of_date) {
-    const context = {webhook_url: webhook_url, as_of_date: as_of_date, raw:{}, controller:new AbortController(), queue:[], active:0};
+    const context = {webhook_url:webhook_url,as_of_date:as_of_date,selected_year_month:null,raw:{},cache:new Map(),controller:new AbortController(),queue:[],active:0,initializing:true};
     context.schedule = function(task) {
         return new Promise(function(resolve,reject) {
             context.queue.push({task:task,resolve:resolve,reject:reject});
@@ -583,31 +664,60 @@ function rebuildData() {
         setCardState('f',['OPS_014','OPS_002','OPS_028:'+month.k],PLANS.length && rowsFor('OPS_002').length && rowsFor('OPS_028:'+month.k).length);
     }
 }
-async function loadQuery(context,key,query_id,parameters,force) {
-    const existing=context.raw[key];
-    if (!force && existing && ['loading','ready'].includes(existing.status)) return existing.promise;
-    const item={status:'loading'};
-    context.raw[key]=item;
-    if (context === session) renderAll();
-    item.promise=context.schedule(function() { return requestQuery(query_id,parameters,context); }).then(function(rows) {
+async function loadBatch(context,queries,force) {
+    if (context !== session || context.controller.signal.aborted) return;
+    validateBatch(queries);
+    const pending=[],items=new Map(),waiting=[];
+    queries.forEach(function(query) {
+        const signature=querySignature(query),key=chartDataKey(query);
+        const existing=context.cache.get(signature);
+        if (existing && (existing.status==='loading' || (!force && ['ready','error'].includes(existing.status)))) {
+            context.raw[key]=existing;
+            if(existing.status==='loading')waiting.push(existing.promise);
+            return;
+        }
+        const item={status:'loading'};
+        pending.push(query);
+        items.set(signature,item);
+        context.cache.set(signature,item);
+        context.raw[key]=item;
+    });
+    renderAll();
+    if (!pending.length) {
+        await Promise.all(waiting);
+        return;
+    }
+    const promise=context.schedule(function(){return requestBatch(pending,context);}).then(function(results) {
         if (context.controller.signal.aborted) return;
-        item.rows=rows; item.status='ready';
+        pending.forEach(function(query) {
+            const signature=querySignature(query),item=items.get(signature);
+            if (context.cache.get(signature)!==item) return;
+            try {
+                const result=results.get(signature);
+                if (!result) throw new Error(query.query_id+': 응답에 해당 쿼리·파라미터의 결과가 없습니다.');
+                if (result.ok===false) throw new Error(result.error && typeof result.error.message==='string' ? result.error.message : query.query_id+': 조회에 실패했습니다.');
+                if (result.ok!==true) throw new Error(query.query_id+': 응답 항목에 ok: true 또는 ok: false가 필요합니다.');
+                item.rows=normalizeRows(query.query_id,result.rows,query.parameters);
+                item.status='ready';
+            } catch (error) {
+                item.status='error';item.message=error.message;
+            }
+        });
     }).catch(function(error) {
         if (context.controller.signal.aborted) return;
-        item.status='error'; item.message=error.message;
-    }).finally(function() { if (context === session && !context.controller.signal.aborted) renderAll(); });
-    await item.promise;
-    return item;
-}
-function loadMonth(context,index,force) {
-    const month=MONTHS[index];
-    if (!month || context !== session) return;
-    loadQuery(context,'OPS_025:'+month.k,'OPS_025',{year_month:month.k},force);
-    loadQuery(context,'OPS_028:'+month.k,'OPS_028',{year_month:month.k},force);
-    PCT.forEach(function(percent) { loadQuery(context,'OPS_020:'+month.k+':'+percent,'OPS_020',{year_month:month.k,top_percent:percent},force); });
+        pending.forEach(function(query) {
+            const signature=querySignature(query),item=items.get(signature);
+            if (context.cache.get(signature)===item) {item.status='error';item.message=error.message;}
+        });
+    }).finally(function() {
+        if (context === session && !context.controller.signal.aborted) renderAll();
+    });
+    items.forEach(function(item){item.promise=promise;});
+    await Promise.all([promise].concat(waiting));
 }
 function configureMonths(context) {
     if (context !== session || !loaded('OPS_015') || !loaded('OPS_018')) return;
+    const selected=context.selected_year_month;
     const range=rowsFor('OPS_015')[0];
     const min=range && range.min_date, max=range && range.max_date;
     MONTHS=rowsFor('OPS_018').map(function(row) {
@@ -616,60 +726,54 @@ function configureMonths(context) {
         const end=new Date(next.getTime()-86400000).toISOString().slice(0,10);
         return {k:key,label:key.replace('-','년 ')+'월',partial:!!(min && max && (min > start || max < end))};
     }).sort(function(a,b) { return a.k.localeCompare(b.k); });
-    const complete=MONTHS.map(function(month,index) { return month.partial ? -1 : index; }).filter(function(index) { return index >= 0; });
-    cur=complete.length ? complete[complete.length-1] : MONTHS.length-1;
-    buildSeg(); renderAll(); loadMonth(context,cur,false);
-}
-async function loadUsage(context,force) {
-    await loadQuery(context,'OPS_015','OPS_015',{},force);
-    if (context !== session || context.controller.signal.aborted) return;
-    const range=rowsFor('OPS_015')[0];
-    if (!loaded('OPS_015')) return;
-    if (!range || !range.min_date || !range.max_date) { context.raw.OPS_018={status:'ready',rows:[]}; configureMonths(context); return; }
-    const from=new Date(monthDate(range.min_date)+'T00:00:00Z');
-    const last=new Date(monthDate(range.max_date)+'T00:00:00Z');
-    const floor=new Date(last); floor.setUTCMonth(floor.getUTCMonth()-119);
-    const first=from < floor ? floor.toISOString().slice(0,10) : from.toISOString().slice(0,10);
-    await loadQuery(context,'OPS_018','OPS_018',{from_month:first,to_month:monthDate(range.max_date)},force);
-    configureMonths(context);
+    cur=MONTHS.findIndex(function(month){return month.k===selected;});
+    // 결과로 월 버튼만 갱신한다. 여기서 추가 요청을 보내거나 선택 월을 바꾸지 않는다.
+    buildSeg(); renderAll();
 }
 function retryCard(id) {
     if (!session) { connect(); return; }
-    if (['b','c','f','e'].includes(id) && (!loaded('OPS_015') || !loaded('OPS_018'))) { loadUsage(session,true); return; }
-    const jobs={a:[['OPS_014',{limit:200}],['OPS_017',{as_of_date:OPS_017_AS_OF_DATE}]],d:[['OPS_023',{}]],e:[]};
-    if (jobs[id]) {
-        if (id === 'e') loadUsage(session,true);
-        else jobs[id].forEach(function(job) { loadQuery(session,job[0],job[0],job[1],true); });
-    } else {
-        if (id === 'f') {
-            if (!loaded('OPS_014')) loadQuery(session,'OPS_014','OPS_014',{limit:200},true);
-            if (!loaded('OPS_002')) loadQuery(session,'OPS_002','OPS_002',{as_of_date:session.as_of_date},true);
-        }
-        const month=MONTHS[cur]; if (!month) return;
-        if (id === 'b') loadQuery(session,'OPS_025:'+month.k,'OPS_025',{year_month:month.k},true);
-        if (id === 'f') loadQuery(session,'OPS_028:'+month.k,'OPS_028',{year_month:month.k},true);
-        if (id === 'c') PCT.forEach(function(percent) { loadQuery(session,'OPS_020:'+month.k+':'+percent,'OPS_020',{year_month:month.k,top_percent:percent},true); });
-    }
+    const context=session;
+    const ids={a:['OPS_014','OPS_017'],b:['OPS_025'],c:['OPS_020'],d:['OPS_023'],e:['OPS_015','OPS_018'],f:['OPS_014','OPS_002','OPS_028']}[id];
+    if(!ids)return;
+    const queries=dashboardQueries(context.as_of_date,context.selected_year_month).filter(function(query){
+        return ids.includes(query.query_id) || (['OPS_015','OPS_018'].includes(query.query_id) && !loaded(query.query_id));
+    });
+    loadBatch(context,queries,true).then(function(){
+        if(context===session && !context.controller.signal.aborted)configureMonths(context);
+    });
 }
 function connect(event) {
     if (event) event.preventDefault();
     const webhook_url=CONFIG.webhook_url, as_of_date=$('#snapshot-date').value;
     const message=$('#connection-status');
+    let queries,year_month;
     try {
         const url=new URL(webhook_url);
         if (!['https:','http:'].includes(url.protocol) || url.username || url.password) throw new Error('URL');
-        validateParameters('OPS_002',{as_of_date:as_of_date});
-    } catch (error) { message.textContent='웹훅 설정과 가입자 수 기준일을 확인하세요.'; return; }
-    if (session) session.controller.abort();
-    session=createContext(webhook_url,as_of_date);
-    MONTHS=[]; M=[]; cur=-1; buildSeg(); tipHide();
+        year_month=session ? session.selected_year_month : initialYearMonth();
+        queries=dashboardQueries(as_of_date,year_month);
+        validateBatch(queries);
+    } catch (error) { message.textContent='웹훅 설정·가입자 수 기준일·월 조회 기간을 확인하세요. '+error.message; return; }
+    // 기준일이 변경되면 해당 쿼리만 보낸다. 같은 조건의 새로고침은 전체를 재조회한다.
+    const force=!!session && session.webhook_url===webhook_url && session.as_of_date===as_of_date;
+    if (!session || session.webhook_url!==webhook_url) {
+        if(session)session.controller.abort();
+        session=createContext(webhook_url,as_of_date);
+        MONTHS=[];M=[];cur=-1;buildSeg();
+    }
+    session.as_of_date=as_of_date;
+    session.selected_year_month=year_month;
+    session.initializing=true;
+    tipHide();
     message.textContent='조회 중입니다. 각 카드에서 결과를 확인하세요.';
     const context=session;
-    loadQuery(context,'OPS_014','OPS_014',{limit:200},false);
-    loadQuery(context,'OPS_017','OPS_017',{as_of_date:OPS_017_AS_OF_DATE},false);
-    loadQuery(context,'OPS_002','OPS_002',{as_of_date:as_of_date},false);
-    loadQuery(context,'OPS_023','OPS_023',{},false);
-    loadUsage(context,false);
+    loadBatch(context,queries,force).then(function() {
+        if (context !== session || context.controller.signal.aborted) return;
+        return configureMonths(context);
+    }).finally(function() {
+        context.initializing=false;
+        if (context === session && !context.controller.signal.aborted) renderAll();
+    });
 }
 
 
@@ -1058,7 +1162,7 @@ function buildSeg(){
 function updateChrome(){
     MONTHS.forEach(function(month,index){$('#m'+index).setAttribute('aria-pressed',String(index===cur));});
     const month=MONTHS[cur],mo=M[cur],range=rowsFor('OPS_015')[0];
-    $('#mchip').textContent=month ? (month.partial?'부분 월 · 월 합계 비교에 주의하세요':'조회 범위에 포함된 월 · 적재 누락은 별도 확인') : '기준월: 조회 전';
+    $('#mchip').textContent=month ? (month.partial?'부분 월 · 월 합계 비교에 주의하세요':'조회 범위에 포함된 월 · 적재 누락은 별도 확인') : session ? '선택 월: '+session.selected_year_month+' · 조회 가능한 다른 월을 선택할 수 있습니다.' : '기준월: 조회 전';
     $('#mchip').className='chip'+(month && month.partial?' warn':'');
     $('#range-chip').textContent=range && range.min_date && range.max_date ? '사용량 기간 '+range.min_date+' ~ '+range.max_date : '사용량 기간: '+(loaded('OPS_015')?'데이터 없음':'조회 전');
     $('#snapshot-chip').textContent='가입 비중 기준일: '+OPS_017_AS_OF_DATE+' · 가입자 수 기준일: '+(session ? session.as_of_date : '조회 전');
@@ -1075,7 +1179,7 @@ function updateChrome(){
     if(cardStates.f.status!=='ready')$('#note-f').textContent='현재 요금제로 과거 사용량을 분류합니다. 기본 제공량 초과가 추가 요금 발생을 뜻하지는 않습니다.';
     if(session){
         const values=Object.values(session.raw),pending=values.filter(function(value){return value.status==='loading';}).length,errors=values.filter(function(value){return value.status==='error';}).length;
-        $('#connection-status').textContent=pending ? '조회 중 · 대기/실행 '+pending+'건'+(errors?' · 실패 '+errors+'건':'') : errors ? '일부 조회 실패 · 각 카드의 다시 조회 버튼을 사용하세요.' : '조회 완료 · 새로고침하면 캐시를 비우고 최신 결과를 가져옵니다.';
+        $('#connection-status').textContent=pending ? '목록 조회 중 · 쿼리 결과 대기 '+pending+'개'+(errors?' · 실패 '+errors+'개':'') : session.initializing ? '조회 중 · 월 버튼을 갱신하고 있습니다.' : errors ? '일부 조회 실패 · 각 카드의 다시 조회 버튼을 사용하세요.' : '조회 완료 · 조건 변경 시 변경된 쿼리만 요청합니다. 새로고침은 현재 조건 전체를 재조회합니다.';
     }
 }
 function renderAll(){
@@ -1083,7 +1187,13 @@ function renderAll(){
 }
 function setMonth(index){
     if(index<0 || index>=MONTHS.length || index===cur)return;
-    cur=index;tipHide();clearHL();renderAll();loadMonth(session,index,false);
+    cur=index;
+    const context=session;
+    context.selected_year_month=MONTHS[index].k;
+    tipHide();clearHL();
+    loadBatch(context,dashboardQueries(context.as_of_date,context.selected_year_month),false).then(function(){
+        if(context===session && !context.controller.signal.aborted)configureMonths(context);
+    });
 }
 reg('a',{minW:700,draw:drawA,table:tableA});
 reg('d',{minW:0,draw:drawD});
