@@ -1,0 +1,1098 @@
+<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>고객 운영 대시보드</title>
+<style>
+/* Layout: 필터 바 → KPI 4칸 → 4개 행(가입·결합 / 사용 패턴 / 평균과 적합성). 중립 회색 바탕에 파랑 단일 강조, 카테고리는 검증된 팔레트 순서 */
+:root{
+  --bg:#f6f5f2; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#6e6c66;
+  --grid:#e1e0d9; --axis:#c3c2b7; --line:rgba(11,11,11,.10); --wash:#f0efec; --sel:rgba(42,120,214,.08);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s0:#a8a69e; --o2:#86b6ef;
+  --serious:#ec835a; --track:#cde2fb; --empty:#efeeea;
+  --q1:#cde2fb; --q2:#9ec5f4; --q3:#6da7ec; --q4:#3987e5; --q5:#256abf; --q6:#184f95; --q7:#0d366b;
+  --qt1:#0b0b0b; --qt2:#0b0b0b; --qt3:#0b0b0b; --qt4:#0b0b0b; --qt5:#ffffff; --qt6:#ffffff; --qt7:#ffffff;
+  --bt1:#ffffff; --bt2:#0b0b0b; --bt3:#0b0b0b; --bt4:#0b0b0b; --bt5:#0b0b0b; --bt6:#0b0b0b;
+  --dt1:#ffffff; --dt2:#0b0b0b; --dt3:#0b0b0b;
+  --font:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#a3a29a;
+    --grid:#2c2c2a; --axis:#383835; --line:rgba(255,255,255,.10); --wash:#232321; --sel:rgba(57,135,229,.16);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s0:#6b6a64; --o2:#184f95;
+    --serious:#ec835a; --track:#223a5c; --empty:#222220;
+    --q1:#1f3047; --q2:#23486f; --q3:#1c5cab; --q4:#2a78d6; --q5:#3987e5; --q6:#6da7ec; --q7:#9ec5f4;
+    --qt1:#ffffff; --qt2:#ffffff; --qt3:#ffffff; --qt4:#ffffff; --qt5:#0b0b0b; --qt6:#0b0b0b; --qt7:#0b0b0b;
+    --bt1:#0b0b0b; --bt2:#0b0b0b; --bt3:#0b0b0b; --bt4:#0b0b0b; --bt5:#0b0b0b; --bt6:#ffffff;
+    --dt1:#0b0b0b; --dt2:#ffffff; --dt3:#ffffff;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#a3a29a;
+  --grid:#2c2c2a; --axis:#383835; --line:rgba(255,255,255,.10); --wash:#232321; --sel:rgba(57,135,229,.16);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s0:#6b6a64; --o2:#184f95;
+  --serious:#ec835a; --track:#223a5c; --empty:#222220;
+  --q1:#1f3047; --q2:#23486f; --q3:#1c5cab; --q4:#2a78d6; --q5:#3987e5; --q6:#6da7ec; --q7:#9ec5f4;
+  --qt1:#ffffff; --qt2:#ffffff; --qt3:#ffffff; --qt4:#ffffff; --qt5:#0b0b0b; --qt6:#0b0b0b; --qt7:#0b0b0b;
+  --bt1:#0b0b0b; --bt2:#0b0b0b; --bt3:#0b0b0b; --bt4:#0b0b0b; --bt5:#0b0b0b; --bt6:#ffffff;
+  --dt1:#0b0b0b; --dt2:#ffffff; --dt3:#ffffff;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--font);padding-inline:16px;padding-block:20px 40px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;line-height:1.25;margin:0;font-weight:650;text-wrap:balance}
+.lede{margin:4px 0 0;color:var(--ink2);font-size:13px;max-width:78ch}
+.filters{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding-block:10px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.flabel{font-size:12px;color:var(--ink2);font-weight:600}
+.seg{display:inline-flex}
+.seg button{font:inherit;font-size:13px;min-height:36px;padding:0 14px;border:1px solid var(--axis);background:var(--surface);color:var(--ink);cursor:pointer;margin-left:-1px;display:inline-flex;align-items:center;gap:6px}
+.seg button:first-child{border-radius:6px 0 0 6px;margin-left:0}
+.seg button:last-child{border-radius:0 6px 6px 0}
+.seg button:hover{background:var(--wash)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink);position:relative;z-index:1}
+.seg small{font-size:10.5px;opacity:.75}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px}
+.chip.warn{border-color:var(--serious)}
+.chip svg{flex:none}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;min-width:0}
+.kpi .kl{font-size:12.5px;color:var(--ink2)}
+.kpi .kv{font-size:26px;line-height:1.2;font-weight:600;margin-top:2px;white-space:nowrap}
+.kpi .kv small{font-size:14px;font-weight:500;color:var(--ink2);margin-left:2px}
+.kpi .ks{font-size:12px;color:var(--muted);margin-top:2px}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.c-a{grid-column:span 8}.c-d{grid-column:span 4}.c-b{grid-column:span 6}.c-c{grid-column:span 6}.c-e{grid-column:span 5}.c-f{grid-column:span 7}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.hd{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.hd>div:first-child{min-width:0;flex:1 1 260px}
+.hd h2{font-size:15px;margin:0;font-weight:600;text-wrap:balance}
+.hd p{margin:3px 0 0;font-size:12.5px;color:var(--ink2);max-width:64ch}
+.tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.qid{font:11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:2px 6px;white-space:nowrap}
+.tbtn{font:inherit;font-size:12px;min-height:28px;padding:0 10px;border:1px solid var(--axis);background:var(--surface);color:var(--ink);border-radius:6px;cursor:pointer}
+.tbtn:hover{background:var(--wash)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+.lk{width:14px;height:2px;border-radius:2px;display:inline-block}
+.ramp{display:inline-flex;gap:2px}
+.ramp i{width:16px;height:10px;display:inline-block;border-radius:2px}
+.plot{min-width:0;overflow-x:auto}
+.plot svg{display:block}
+.tbl{overflow:auto;max-height:360px;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;font-size:12px;width:100%}
+th,td{padding:5px 9px;border-bottom:1px solid var(--grid);white-space:nowrap;text-align:right}
+th:first-child,td:first-child{text-align:left}
+thead th{position:sticky;top:0;background:var(--wash);color:var(--ink2);font-weight:600}
+td{font-variant-numeric:tabular-nums}
+.note{font-size:12px;color:var(--muted);margin:0;max-width:80ch}
+.t{font:11px var(--font);fill:var(--muted)}
+.t2{fill:var(--ink2)}
+.tb{font-weight:600}
+.axl{stroke:var(--axis);stroke-width:1}
+.grd{stroke:var(--grid);stroke-width:1}
+rect.hl{stroke:var(--ink);stroke-width:1.5}
+text.hl{fill:var(--ink);font-weight:700}
+.dim{opacity:.3}
+.plot svg *{transition:opacity .1s}
+[tabindex]:focus-visible{outline:2px solid var(--s1);outline-offset:1px}
+.fam-rows{display:flex;flex-direction:column;margin-top:4px}
+.fam-row{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:4px 10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--grid);font-size:12.5px}
+.fam-row:first-child{border-top:0}
+.fam-row .sw{margin-top:3px}
+.fam-row b{font-weight:600}
+.fam-row .sub{grid-column:2 / 4;color:var(--ink2);font-size:12px}
+.fam-row .num{font-variant-numeric:tabular-nums;color:var(--ink2);text-align:right}
+#tip{position:fixed;z-index:50;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--axis);border-radius:6px;padding:8px 10px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.16);max-width:270px;opacity:0;transition:opacity .08s;left:0;top:0}
+#tip.on{opacity:1}
+#tip .tt{color:var(--ink2);margin-bottom:4px}
+#tip .tr{display:flex;justify-content:space-between;gap:14px;align-items:center;line-height:1.55}
+#tip .tl{color:var(--ink2);display:inline-flex;align-items:center}
+#tip .tk{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px}
+#tip strong{font-weight:650;font-variant-numeric:tabular-nums}
+.foot{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px;padding-top:4px}
+@media (max-width:1080px){
+  .c-a,.c-d,.c-b,.c-c,.c-e,.c-f{grid-column:span 12}
+}
+@media (max-width:900px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:480px){
+  .kpi .kv{font-size:22px}
+  .card{padding:14px 14px 12px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important}
+}
+.filters input{font:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--axis);border-radius:5px;padding:6px 8px;min-width:0}
+.filters .date-filter{display:inline-flex;align-items:center;gap:8px}
+.filters .tbtn{min-height:36px}
+.card-status{padding:32px 8px;color:var(--ink2);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;min-height:100px;text-align:center}
+.card-status.error{color:var(--serious)}
+.card[aria-busy="true"]{opacity:.75}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>고객 운영 대시보드</h1>
+    <p class="lede">운영 영역의 집계·가명 데이터를 조회합니다. 가입·가족은 현재 스냅샷이며, 사용량은 선택 월 기준입니다.</p>
+  </header>
+
+  <form id="connection-form" class="filters" role="region" aria-label="필터">
+    <span class="flabel" id="fl-month">기준월</span>
+    <div class="seg" role="group" aria-labelledby="fl-month" id="seg"></div>
+    <span class="chip" id="mchip"></span>
+    <span class="chip" id="range-chip">사용량 기간: 조회 전</span>
+    <span class="chip" id="snapshot-chip">가입 비중 기준일: 2026-09-30 · 가입자 수 기준일: 조회 전</span>
+    <label class="flabel date-filter">가입자 수 기준일<input id="snapshot-date" type="date" required></label>
+    <button class="tbtn" type="submit">새로고침</button>
+  </form>
+  <p class="note" id="connection-status" role="status">데이터를 불러옵니다.</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="kl">총 가입자</div><div class="kv" id="k1">-</div><div class="ks" id="k1s"></div></div>
+    <div class="kpi"><div class="kl">이용자당 평균 / 중앙값</div><div class="kv" id="k2">-</div><div class="ks" id="k2s"></div></div>
+    <div class="kpi"><div class="kl">결합 가입 가족</div><div class="kv" id="k3">-</div><div class="ks" id="k3s"></div></div>
+    <div class="kpi"><div class="kl">상위 10% 고객 사용량 점유율</div><div class="kv" id="k4">-</div><div class="ks" id="k4s"></div></div>
+  </div>
+
+  <div class="grid">
+    <section class="card c-a" id="card-a" aria-labelledby="h-a">
+      <div class="hd">
+        <div><h2 id="h-a">연령대별 요금제 가입 비중</h2><p>색은 연령대 안에서 해당 요금제를 고른 비율, 숫자는 가입자 수(명)입니다. 가로축은 월정액(만원)이며 요금제 계열별로 묶었습니다.</p></div>
+        <div class="tools"><span class="qid">OPS_017</span><span class="qid">OPS_014</span><button type="button" class="tbtn" aria-pressed="false">표로 보기</button></div>
+      </div>
+      <div class="legend" id="lg-a"></div>
+      <div class="plot"></div><div class="tbl" hidden></div>
+      <p class="note">가입 비중 기준일은 2026-09-30으로 고정입니다. 변경과 해지 이력은 반영되지 않습니다.</p>
+    </section>
+
+    <section class="card c-d" id="card-d" aria-labelledby="h-d">
+      <div class="hd">
+        <div><h2 id="h-d">결합·인터넷 보유 가족</h2><p>결합 여부와 KT 인터넷 보유 여부에 따른 가족 단위 집계입니다. 인터넷 보유만으로 결합 자격을 확정할 수는 없습니다.</p></div>
+        <div class="tools"><span class="qid">OPS_023</span></div>
+      </div>
+      <div class="plot"></div><div class="tbl" hidden></div>
+      <p class="note">가족에 연결되지 않은 고객은 제외됩니다. 현재 스냅샷이며 인터넷 상태와 결합 종류는 이 뷰에서 제공하지 않습니다.</p>
+    </section>
+
+    <section class="card c-b" id="card-b" aria-labelledby="h-b">
+      <div class="hd">
+        <div><h2 id="h-b">연령대별 콘텐츠 사용 구성</h2><p>데이터 사용량 기준 비중이며 시청시간 비율이 아닙니다. 영상·숏폼·SNS·게임·웹 외 카테고리는 기타로 묶었습니다.</p></div>
+        <div class="tools"><span class="qid">OPS_025</span><button type="button" class="tbtn" aria-pressed="false">표로 보기</button></div>
+      </div>
+      <div class="legend" id="lg-b"></div>
+      <div class="plot"></div><div class="tbl" hidden></div>
+      <p class="note">19-24 구간은 19세를 포함하므로 20대 초반으로 읽지 않습니다. 카테고리별 이용자 수는 중복되므로 연령대별 고유 이용자 수를 표시하지 않습니다.</p>
+    </section>
+
+    <section class="card c-c" id="card-c" aria-labelledby="h-c">
+      <div class="hd">
+        <div><h2 id="h-c">사용량 집중도</h2><p>사용량이 많은 순으로 고객을 세웠을 때 상위 N% 고객이 전체 사용량에서 차지하는 비중입니다. 곡선이 대각선에서 멀수록 일부 고객에게 쏠립니다.</p></div>
+        <div class="tools"><span class="qid">OPS_020 × 13</span><button type="button" class="tbtn" aria-pressed="false">표로 보기</button></div>
+      </div>
+      <div class="plot"></div><div class="tbl" hidden></div>
+      <p class="note">상위 인원은 올림으로 계산하고 사용량 행이 있는 고객만 포함합니다. 작은 표본에서는 상위 1~2% 구간의 해석에 주의하세요.</p>
+    </section>
+
+    <section class="card c-e" id="card-e" aria-labelledby="h-e">
+      <div class="hd">
+        <div><h2 id="h-e">월별 이용자당 평균과 중앙값</h2><p>평균이 중앙값보다 높을수록 소수의 고사용 고객이 평균을 끌어올립니다. 단위는 이용자당 월 사용량(GB)입니다.</p></div>
+        <div class="tools"><span class="qid">OPS_018</span><button type="button" class="tbtn" aria-pressed="false">표로 보기</button></div>
+      </div>
+      <div class="legend">
+        <span><i class="lk" style="background:var(--s1)"></i>평균</span>
+        <span><i class="lk" style="background:var(--s2)"></i>중앙값</span>
+        <span><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="var(--ink2)" stroke-width="2"/></svg>부분 월</span>
+      </div>
+      <div class="plot"></div><div class="tbl" hidden></div>
+      <p class="note">부분 월 여부는 조회 기간의 시작·끝 날짜로 판단합니다. 중간 적재 누락은 별도 확인이 필요합니다. 차트를 누르면 기준월이 바뀝니다.</p>
+    </section>
+
+    <section class="card c-f" id="card-f" aria-labelledby="h-f">
+      <div class="hd">
+        <div><h2 id="h-f">요금제별 평균 사용량과 기본 제공량</h2><p>이용자당 월 평균은 요금제 총사용량을 가입자 수로 나눈 근사값입니다. 연령 혜택과 공유·이월 데이터는 제공량에 넣지 않았습니다.</p></div>
+        <div class="tools"><span class="qid">OPS_028</span><span class="qid">OPS_002</span><span class="qid">OPS_014</span><button type="button" class="tbtn" aria-pressed="false">표로 보기</button></div>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--track)"></i>기본 제공량</span>
+        <span><i class="sw" style="background:var(--s1)"></i>이용자당 평균 사용량</span>
+        <span><i class="sw" style="background:var(--serious)"></i>제공량 초과 (▲)</span>
+        <span>흐리게 = 가입자 10명 미만 · ∞ = 무제한</span>
+      </div>
+      <div class="plot"></div><div class="tbl" hidden></div>
+      <p class="note" id="note-f"></p>
+    </section>
+  </div>
+
+  <div class="foot">
+    <span>사용량은 1024 MB = 1 GB 기준입니다. 같은 요금제의 현재 가입자 수로 나눈 평균은 사용량 행이 없는 가입자도 포함합니다.</span>
+    <span>가입일·해지·요금제 변경 이력 및 가족과 고객 사용량의 교차 분석은 이 화면에 반영하지 않습니다.</span>
+  </div>
+</div>
+
+<div id="tip" role="tooltip"></div>
+
+<script>
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg';
+function valueText(value,decimals){return value===null || value===undefined ? '-' : Number(value).toFixed(decimals);}
+function $(s,r){return (r||document).querySelector(s);}
+function S(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs){e.setAttribute(k,attrs[k]);}if(parent)parent.appendChild(e);return e;}
+function T(parent,x,y,str,cls,anchor){var e=S('text',{x:x,y:y,'class':'t '+(cls||''),'text-anchor':anchor||'start'},parent);e.textContent=str;return e;}
+function fmt(n,d){d=d||0;return Number(n).toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});}
+
+const QUERY_CONTRACTS = {
+    "OPS_002": {
+        "parameters": {
+            "as_of_date": "date"
+        },
+        "columns": [
+            "plan_id",
+            "plan_name",
+            "subscriber_count"
+        ],
+        "max_rows": 200
+    },
+    "OPS_014": {
+        "parameters": {
+            "limit": "integer"
+        },
+        "columns": [
+            "plan_id",
+            "plan_name",
+            "plan_family",
+            "plan_category",
+            "monthly_fee",
+            "data_limit_gb",
+            "is_unlimited"
+        ],
+        "max_rows": 200
+    },
+    "OPS_015": {
+        "parameters": {},
+        "columns": [
+            "min_date",
+            "max_date"
+        ],
+        "max_rows": 1
+    },
+    "OPS_017": {
+        "parameters": {
+            "as_of_date": "date"
+        },
+        "columns": [
+            "as_of_date",
+            "age_band",
+            "plan_id",
+            "plan_name",
+            "subscriber_count",
+            "share_within_age_band_pct"
+        ],
+        "max_rows": 500
+    },
+    "OPS_018": {
+        "parameters": {
+            "from_month": "date",
+            "to_month": "date"
+        },
+        "columns": [
+            "calendar_month",
+            "total_usage_gb",
+            "unique_usage_users",
+            "average_usage_gb_per_user",
+            "median_usage_gb_per_user"
+        ],
+        "max_rows": 120
+    },
+    "OPS_020": {
+        "parameters": {
+            "year_month": "text",
+            "top_percent": "integer"
+        },
+        "columns": [
+            "calendar_month",
+            "top_percent",
+            "unique_usage_users",
+            "top_customer_count",
+            "top_usage_mb",
+            "total_usage_mb",
+            "top_usage_share_pct"
+        ],
+        "max_rows": 1
+    },
+    "OPS_023": {
+        "parameters": {},
+        "columns": [
+            "has_bundle",
+            "has_kt_internet",
+            "family_count",
+            "member_count",
+            "average_member_count"
+        ],
+        "max_rows": 20
+    },
+    "OPS_025": {
+        "parameters": {
+            "year_month": "text"
+        },
+        "columns": [
+            "calendar_month",
+            "age_band",
+            "content_category",
+            "total_usage_gb",
+            "usage_user_count",
+            "average_usage_gb_per_user",
+            "age_band_total_usage_gb",
+            "category_usage_share_pct"
+        ],
+        "max_rows": 200
+    },
+    "OPS_028": {
+        "parameters": {
+            "year_month": "text"
+        },
+        "columns": [
+            "calendar_month",
+            "plan_id",
+            "plan_name",
+            "content_category",
+            "total_usage_gb",
+            "usage_user_count",
+            "average_usage_gb_per_user",
+            "plan_total_usage_gb",
+            "category_usage_share_pct"
+        ],
+        "max_rows": 2000
+    }
+};
+// 웹훅 URL은 고정한다. as_of_date는 OPS_002의 기본 기준일이며 화면에서 변경할 수 있다.
+// OPS_017은 아래 별도 상수로 2026-09-30에 고정한다. DB 인증 정보는 넣지 않는다.
+// POST 요청: { query_id, parameters }
+// 정상 응답: { ok: true, query_id, rows: [...] } (빈 결과는 rows: [])
+// 실패 응답: { ok: false, query_id, error: { code, message } }
+const CONFIG = {
+    webhook_url: 'https://yuno-da.app.n8n.cloud/webhook/5c3aecf3-87ee-404a-b6fc-af8c2dbe1c18',
+    as_of_date: '2026-09-30',
+    timeout_ms: 35000,
+    concurrency: 3
+};
+const OPS_017_AS_OF_DATE = '2026-09-30';
+const AGE = ['8-12','13-18','19-24','25-34','35-49','50-64','65+'];
+const CAT = ['영상','숏폼','SNS','게임','웹','기타'];
+const CATEGORY_KEYS = ['video','short_form','sns','game','web'];
+const PCT = [1,2,5,10,20,30,40,50,60,70,80,90,100];
+let AGE_N = [], CNT = [], SHARES = [], PSUB = [], PLANS = [], FAM = [], famPlans = [];
+let MONTHS = [], M = [], FAMGRP = [], cur = -1, session = null;
+const cardStates = {};
+const NUMERIC_COLUMNS = new Set(['monthly_fee','data_limit_gb','subscriber_count','share_within_age_band_pct','total_usage_gb','unique_usage_users','average_usage_gb_per_user','median_usage_gb_per_user','top_percent','top_customer_count','top_usage_mb','total_usage_mb','top_usage_share_pct','family_count','member_count','average_member_count','usage_user_count','age_band_total_usage_gb','category_usage_share_pct','plan_total_usage_gb']);
+function validDate(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(value + 'T00:00:00Z');
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value;
+}
+function monthDate(value) { return value.slice(0,7) + '-01'; }
+function validateParameters(query_id, parameters) {
+    const contract = QUERY_CONTRACTS[query_id];
+    if (!contract || !parameters || typeof parameters !== 'object' || Array.isArray(parameters)) throw new Error('지원하지 않는 쿼리 요청입니다.');
+    const expected = Object.keys(contract.parameters).sort();
+    if (JSON.stringify(Object.keys(parameters).sort()) !== JSON.stringify(expected)) throw new Error(query_id + ': 파라미터 이름이 카탈로그와 다릅니다.');
+    expected.forEach(function(name) {
+        const type = contract.parameters[name], value = parameters[name];
+        if (type === 'date' && !validDate(value)) throw new Error(name + ': YYYY-MM-DD 날짜가 필요합니다.');
+        if (type === 'integer' && !Number.isInteger(value)) throw new Error(name + ': 정수가 필요합니다.');
+        if (type === 'text' && typeof value !== 'string') throw new Error(name + ': 문자열이 필요합니다.');
+    });
+    if ('year_month' in parameters && !/^\d{4}-(0[1-9]|1[0-2])$/.test(parameters.year_month)) throw new Error('year_month: YYYY-MM 형식이 필요합니다.');
+    if ('top_percent' in parameters && (parameters.top_percent < 1 || parameters.top_percent > 100)) throw new Error('top_percent: 1~100 정수가 필요합니다.');
+    if ('limit' in parameters && parameters.limit < 1) throw new Error('limit: 1 이상의 정수가 필요합니다.');
+    if ('from_month' in parameters) {
+        const from = monthDate(parameters.from_month), to = monthDate(parameters.to_month);
+        const count = (Number(to.slice(0,4))-Number(from.slice(0,4)))*12 + Number(to.slice(5,7))-Number(from.slice(5,7))+1;
+        if (count < 1 || count > 120) throw new Error('월 조회 범위는 시작월부터 최대 120개월입니다.');
+    }
+    return contract;
+}
+function normalizeRows(query_id, rows, parameters) {
+    const contract = QUERY_CONTRACTS[query_id];
+    if (!Array.isArray(rows)) throw new Error(query_id + ': rows는 배열이어야 합니다.');
+    const normalized = rows.map(function(source) {
+        if (!source || typeof source !== 'object' || contract.columns.some(function(key) { return !Object.prototype.hasOwnProperty.call(source,key); })) throw new Error(query_id + ': 반환 컬럼이 카탈로그와 다릅니다.');
+        const row = Object.assign({},source);
+        contract.columns.forEach(function(key) {
+            const value = row[key];
+            if (NUMERIC_COLUMNS.has(key) && value !== null) {
+                if ((typeof value !== 'number' && typeof value !== 'string') || String(value).trim() === '' || !Number.isFinite(Number(value))) throw new Error(query_id + ': 숫자 컬럼 형식 오류 (' + key + ')');
+                row[key] = Number(value);
+            }
+            if (['has_bundle','has_kt_internet','is_unlimited'].includes(key)) {
+                if ([true,'true','t'].includes(value)) row[key] = true;
+                else if ([false,'false','f'].includes(value)) row[key] = false;
+                else throw new Error(query_id + ': boolean 컬럼 형식 오류 (' + key + ')');
+            }
+            if (['calendar_month','as_of_date','min_date','max_date'].includes(key) && value !== null) {
+                if (typeof value !== 'string' || !validDate(value.slice(0,10))) throw new Error(query_id + ': 날짜 컬럼 형식 오류 (' + key + ')');
+                row[key] = value.slice(0,10);
+            }
+        });
+        return row;
+    });
+    if (parameters) normalized.forEach(function(row) {
+        if ('year_month' in parameters && row.calendar_month !== parameters.year_month + '-01') throw new Error(query_id + ': 요청 월과 반환 월이 다릅니다.');
+        if ('as_of_date' in row && row.as_of_date !== parameters.as_of_date) throw new Error(query_id + ': 요청 기준일과 반환 기준일이 다릅니다.');
+        if (query_id === 'OPS_020' && row.top_percent !== parameters.top_percent) throw new Error(query_id + ': 요청 상위 비율과 반환 비율이 다릅니다.');
+        if (query_id === 'OPS_018' && (row.calendar_month < monthDate(parameters.from_month) || row.calendar_month > monthDate(parameters.to_month))) throw new Error(query_id + ': 반환 월이 요청 범위 밖입니다.');
+    });
+    if (query_id === 'OPS_028') {
+        const totals = new Map();
+        normalized.forEach(function(row) {
+            if (totals.has(row.plan_id) && Math.abs(totals.get(row.plan_id) - row.plan_total_usage_gb) > 0.01) throw new Error(query_id + ': 같은 요금제의 총사용량이 일치하지 않습니다.');
+            totals.set(row.plan_id, row.plan_total_usage_gb);
+        });
+    }
+    return normalized;
+}
+async function requestQuery(query_id, parameters, context) {
+    validateParameters(query_id,parameters);
+    if (context.controller.signal.aborted) throw new DOMException('취소된 요청','AbortError');
+    const controller = new AbortController();
+    const abort = function() { controller.abort(); };
+    context.controller.signal.addEventListener('abort',abort,{once:true});
+    const timer = setTimeout(function() { controller.abort(); },CONFIG.timeout_ms);
+    try {
+        const response = await fetch(context.webhook_url, {
+            method:'POST', headers:{'Content-Type':'application/json'}, credentials:'omit',
+            body:JSON.stringify({query_id:query_id,parameters:parameters}), signal:controller.signal
+        });
+        if (!response.ok) throw new Error('HTTP ' + response.status + ': 웹훅 실행에 실패했습니다.');
+        const body = await response.json();
+        if (!body || body.query_id !== query_id) throw new Error('응답 query_id가 요청과 다릅니다. n8n 응답 형식을 확인하세요.');
+        if (body.ok === false) throw new Error(body.error && typeof body.error.message === 'string' ? body.error.message : '쿼리 실행에 실패했습니다.');
+        if (body.ok !== true) throw new Error('응답에 ok: true 또는 ok: false가 필요합니다.');
+        return normalizeRows(query_id,body.rows,parameters);
+    } catch (error) {
+        if (context.controller.signal.aborted) throw new DOMException('취소된 요청','AbortError');
+        if (error.name === 'AbortError') throw new Error('조회 시간이 초과되었습니다. 다시 시도하세요.');
+        if (error instanceof TypeError) throw new Error('웹훅 연결 실패: URL, 네트워크, CORS 설정을 확인하세요.');
+        throw error;
+    } finally {
+        clearTimeout(timer);
+        context.controller.signal.removeEventListener('abort',abort);
+    }
+}
+function createContext(webhook_url,as_of_date) {
+    const context = {webhook_url: webhook_url, as_of_date: as_of_date, raw:{}, controller:new AbortController(), queue:[], active:0};
+    context.schedule = function(task) {
+        return new Promise(function(resolve,reject) {
+            context.queue.push({task:task,resolve:resolve,reject:reject});
+            pump();
+        });
+    };
+    function pump() {
+        while (context.active < CONFIG.concurrency && context.queue.length) {
+            const entry = context.queue.shift();
+            if (context.controller.signal.aborted) { entry.reject(new DOMException('취소된 요청','AbortError')); continue; }
+            context.active++;
+            Promise.resolve().then(entry.task).then(entry.resolve,entry.reject).finally(function() { context.active--; pump(); });
+        }
+    }
+    return context;
+}
+function result(key) { return session && session.raw[key]; }
+function loaded(key) { const item=result(key); return item && item.status === 'ready'; }
+function rowsFor(key) { return loaded(key) ? result(key).rows : []; }
+function dependencyState(keys) {
+    if (!session) return {status:'idle',message:'데이터를 불러올 준비를 하고 있습니다.'};
+    const errors = keys.map(result).filter(function(value) { return value && value.status === 'error'; });
+    if (errors.length) return {status:'error',message:errors[0].message};
+    if (!keys.every(loaded)) return {status:'loading',message:'데이터를 조회하고 있습니다.'};
+    return {status:'ready'};
+}
+function setCardState(id,keys,hasData) {
+    const state=dependencyState(keys);
+    if (state.status === 'ready' && !hasData) { state.status='empty'; state.message='해당 조건의 데이터가 없습니다.'; }
+    cardStates[id]=state;
+}
+function applyCatalog(rows) {
+    const groups=[];
+    rows.forEach(function(row) { if (!groups.includes(row.plan_family)) groups.push(row.plan_family); });
+    FAM=groups.map(function(group) { return rows.find(function(row) { return row.plan_family === group; }).plan_category; });
+    PLANS=rows.map(function(row) {
+        return {id:row.plan_id,name:row.plan_name,f:groups.indexOf(row.plan_family),fee:row.monthly_fee,lim:row.is_unlimited?null:row.data_limit_gb};
+    }).sort(function(a,b) { return a.f-b.f || a.fee-b.fee || a.id.localeCompare(b.id); });
+    famPlans=FAM.map(function(_,f) { return PLANS.map(function(plan,index) { return plan.f === f ? index : -1; }).filter(function(index) { return index >= 0; }); });
+}
+function mapAgeRows(rows) {
+    return AGE.map(function(age_band) {
+        const subset=rows.filter(function(row) { return row.age_band === age_band; });
+        const gb=CAT.map(function() { return 0; });
+        subset.forEach(function(row) {
+            const index=CATEGORY_KEYS.indexOf(row.content_category);
+            gb[index < 0 ? 5 : index] += row.total_usage_gb;
+        });
+        const total=gb.reduce(function(sum,value) { return sum+value; },0);
+        return {total:total,gb:gb,sh:gb.map(function(value) { return total > 0 ? value/total : 0; })};
+    });
+}
+function mapPlanRows(rows,subscriptions,plans) {
+    const totals=new Map();
+    rows.forEach(function(row) {
+        if (totals.has(row.plan_id) && Math.abs(totals.get(row.plan_id)-row.plan_total_usage_gb) > 0.01) throw new Error('같은 요금제의 총사용량 값이 일치하지 않습니다.');
+        totals.set(row.plan_id,row.plan_total_usage_gb);
+    });
+    return plans.map(function(plan,index) {
+        const total=totals.get(plan.id) || 0, count=subscriptions[index];
+        return {total:total,avg:count > 0 ? total/count : null};
+    });
+}
+function mapConcentration(rows) {
+    return rows.map(function(row) { return {p:row.top_percent,k:row.top_customer_count,gb:row.top_usage_mb/1024,total:row.total_usage_mb/1024,share:row.top_usage_share_pct === null ? null : row.top_usage_share_pct/100}; }).sort(function(a,b) { return a.p-b.p; });
+}
+function rebuildData() {
+    applyCatalog(rowsFor('OPS_014'));
+    AGE_N=AGE.map(function() { return 0; });
+    CNT=AGE.map(function() { return PLANS.map(function() { return 0; }); });
+    SHARES=AGE.map(function() { return PLANS.map(function() { return 0; }); });
+    rowsFor('OPS_017').forEach(function(row) {
+        const a=AGE.indexOf(row.age_band), p=PLANS.findIndex(function(plan) { return plan.id === row.plan_id; });
+        if (a >= 0 && p >= 0) { CNT[a][p]=row.subscriber_count; SHARES[a][p]=row.share_within_age_band_pct; AGE_N[a]+=row.subscriber_count; }
+    });
+    PSUB=PLANS.map(function(plan) { const row=rowsFor('OPS_002').find(function(item) { return item.plan_id === plan.id; }); return row ? row.subscriber_count : 0; });
+    FAMGRP=rowsFor('OPS_023').map(function(row) {
+        const index=row.has_bundle ? (row.has_kt_internet ? 0 : 3) : (row.has_kt_internet ? 1 : 2);
+        return {name:['결합 가입 · 인터넷 보유','인터넷 보유 · 미결합','인터넷 없음 · 미결합','결합 가입 · 인터넷 없음'][index],has_bundle:row.has_bundle,fam:row.family_count,mem:row.member_count,average:row.average_member_count,note:row.has_kt_internet && !row.has_bundle ? '결합 검토 후보 · 인터넷 상태와 자격은 별도 확인' : '',color:['var(--s1)','var(--o2)','var(--s0)','var(--s2)'][index],tc:'var(--dt'+(Math.min(index,2)+1)+')'};
+    });
+    M=MONTHS.map(function(month) {
+        const summary=rowsFor('OPS_018').find(function(row) { return row.calendar_month.slice(0,7) === month.k; });
+        const concentration=PCT.flatMap(function(percent) { return rowsFor('OPS_020:'+month.k+':'+percent); });
+        return {m:month,users:summary ? summary.unique_usage_users : null,total:summary ? summary.total_usage_gb : null,avg:summary ? summary.average_usage_gb_per_user : null,median:summary ? summary.median_usage_gb_per_user : null,age:mapAgeRows(rowsFor('OPS_025:'+month.k)),plan:mapPlanRows(rowsFor('OPS_028:'+month.k),PSUB,PLANS),conc:mapConcentration(concentration)};
+    });
+    setCardState('a',['OPS_014','OPS_017'],PLANS.length && rowsFor('OPS_017').length);
+    setCardState('d',['OPS_023'],FAMGRP.some(function(group) { return group.fam > 0; }));
+    setCardState('e',['OPS_015','OPS_018'],M.some(function(month) { return month.avg !== null; }));
+    const month=MONTHS[cur];
+    const rangeState=dependencyState(['OPS_015','OPS_018']);
+    if (!month) {
+        ['b','c','f'].forEach(function(id) { cardStates[id]=rangeState.status === 'ready' ? {status:'empty',message:'조회할 사용량 월이 없습니다.'} : rangeState; });
+    } else {
+        const mo=M[cur];
+        setCardState('b',['OPS_025:'+month.k],mo.age.some(function(age) { return age.total > 0; }));
+        setCardState('c',PCT.map(function(percent) { return 'OPS_020:'+month.k+':'+percent; }),mo.conc.some(function(point) { return point.share !== null; }));
+        setCardState('f',['OPS_014','OPS_002','OPS_028:'+month.k],PLANS.length && rowsFor('OPS_002').length && rowsFor('OPS_028:'+month.k).length);
+    }
+}
+async function loadQuery(context,key,query_id,parameters,force) {
+    const existing=context.raw[key];
+    if (!force && existing && ['loading','ready'].includes(existing.status)) return existing.promise;
+    const item={status:'loading'};
+    context.raw[key]=item;
+    if (context === session) renderAll();
+    item.promise=context.schedule(function() { return requestQuery(query_id,parameters,context); }).then(function(rows) {
+        if (context.controller.signal.aborted) return;
+        item.rows=rows; item.status='ready';
+    }).catch(function(error) {
+        if (context.controller.signal.aborted) return;
+        item.status='error'; item.message=error.message;
+    }).finally(function() { if (context === session && !context.controller.signal.aborted) renderAll(); });
+    await item.promise;
+    return item;
+}
+function loadMonth(context,index,force) {
+    const month=MONTHS[index];
+    if (!month || context !== session) return;
+    loadQuery(context,'OPS_025:'+month.k,'OPS_025',{year_month:month.k},force);
+    loadQuery(context,'OPS_028:'+month.k,'OPS_028',{year_month:month.k},force);
+    PCT.forEach(function(percent) { loadQuery(context,'OPS_020:'+month.k+':'+percent,'OPS_020',{year_month:month.k,top_percent:percent},force); });
+}
+function configureMonths(context) {
+    if (context !== session || !loaded('OPS_015') || !loaded('OPS_018')) return;
+    const range=rowsFor('OPS_015')[0];
+    const min=range && range.min_date, max=range && range.max_date;
+    MONTHS=rowsFor('OPS_018').map(function(row) {
+        const start=monthDate(row.calendar_month), key=start.slice(0,7);
+        const next=new Date(start+'T00:00:00Z'); next.setUTCMonth(next.getUTCMonth()+1);
+        const end=new Date(next.getTime()-86400000).toISOString().slice(0,10);
+        return {k:key,label:key.replace('-','년 ')+'월',partial:!!(min && max && (min > start || max < end))};
+    }).sort(function(a,b) { return a.k.localeCompare(b.k); });
+    const complete=MONTHS.map(function(month,index) { return month.partial ? -1 : index; }).filter(function(index) { return index >= 0; });
+    cur=complete.length ? complete[complete.length-1] : MONTHS.length-1;
+    buildSeg(); renderAll(); loadMonth(context,cur,false);
+}
+async function loadUsage(context,force) {
+    await loadQuery(context,'OPS_015','OPS_015',{},force);
+    if (context !== session || context.controller.signal.aborted) return;
+    const range=rowsFor('OPS_015')[0];
+    if (!loaded('OPS_015')) return;
+    if (!range || !range.min_date || !range.max_date) { context.raw.OPS_018={status:'ready',rows:[]}; configureMonths(context); return; }
+    const from=new Date(monthDate(range.min_date)+'T00:00:00Z');
+    const last=new Date(monthDate(range.max_date)+'T00:00:00Z');
+    const floor=new Date(last); floor.setUTCMonth(floor.getUTCMonth()-119);
+    const first=from < floor ? floor.toISOString().slice(0,10) : from.toISOString().slice(0,10);
+    await loadQuery(context,'OPS_018','OPS_018',{from_month:first,to_month:monthDate(range.max_date)},force);
+    configureMonths(context);
+}
+function retryCard(id) {
+    if (!session) { connect(); return; }
+    if (['b','c','f','e'].includes(id) && (!loaded('OPS_015') || !loaded('OPS_018'))) { loadUsage(session,true); return; }
+    const jobs={a:[['OPS_014',{limit:200}],['OPS_017',{as_of_date:OPS_017_AS_OF_DATE}]],d:[['OPS_023',{}]],e:[]};
+    if (jobs[id]) {
+        if (id === 'e') loadUsage(session,true);
+        else jobs[id].forEach(function(job) { loadQuery(session,job[0],job[0],job[1],true); });
+    } else {
+        if (id === 'f') {
+            if (!loaded('OPS_014')) loadQuery(session,'OPS_014','OPS_014',{limit:200},true);
+            if (!loaded('OPS_002')) loadQuery(session,'OPS_002','OPS_002',{as_of_date:session.as_of_date},true);
+        }
+        const month=MONTHS[cur]; if (!month) return;
+        if (id === 'b') loadQuery(session,'OPS_025:'+month.k,'OPS_025',{year_month:month.k},true);
+        if (id === 'f') loadQuery(session,'OPS_028:'+month.k,'OPS_028',{year_month:month.k},true);
+        if (id === 'c') PCT.forEach(function(percent) { loadQuery(session,'OPS_020:'+month.k+':'+percent,'OPS_020',{year_month:month.k,top_percent:percent},true); });
+    }
+}
+function connect(event) {
+    if (event) event.preventDefault();
+    const webhook_url=CONFIG.webhook_url, as_of_date=$('#snapshot-date').value;
+    const message=$('#connection-status');
+    try {
+        const url=new URL(webhook_url);
+        if (!['https:','http:'].includes(url.protocol) || url.username || url.password) throw new Error('URL');
+        validateParameters('OPS_002',{as_of_date:as_of_date});
+    } catch (error) { message.textContent='웹훅 설정과 가입자 수 기준일을 확인하세요.'; return; }
+    if (session) session.controller.abort();
+    session=createContext(webhook_url,as_of_date);
+    MONTHS=[]; M=[]; cur=-1; buildSeg(); tipHide();
+    message.textContent='조회 중입니다. 각 카드에서 결과를 확인하세요.';
+    const context=session;
+    loadQuery(context,'OPS_014','OPS_014',{limit:200},false);
+    loadQuery(context,'OPS_017','OPS_017',{as_of_date:OPS_017_AS_OF_DATE},false);
+    loadQuery(context,'OPS_002','OPS_002',{as_of_date:as_of_date},false);
+    loadQuery(context,'OPS_023','OPS_023',{},false);
+    loadUsage(context,false);
+}
+
+
+/* ---------- 툴팁과 연동 하이라이트 ---------- */
+var tip=$('#tip');
+function tipShow(c){
+  tip.replaceChildren();
+  var t=document.createElement('div');t.className='tt';t.textContent=c.title;tip.appendChild(t);
+  c.rows.forEach(function(r){
+    var d=document.createElement('div');d.className='tr';
+    var l=document.createElement('span');l.className='tl';
+    if(r.color){var k=document.createElement('i');k.className='tk';k.style.background=r.color;l.appendChild(k);}
+    l.appendChild(document.createTextNode(r.label));
+    var v=document.createElement('strong');v.textContent=r.value;
+    d.appendChild(l);d.appendChild(v);tip.appendChild(d);
+  });
+  tip.classList.add('on');
+}
+function tipMove(e){
+  var w=tip.offsetWidth,h=tip.offsetHeight,x=e.clientX+14,y=e.clientY+14;
+  if(x+w>innerWidth-8)x=e.clientX-w-14;if(x<8)x=8;
+  if(y+h>innerHeight-8)y=e.clientY-h-14;if(y<8)y=8;
+  tip.style.left=x+'px';tip.style.top=y+'px';
+}
+function tipHide(){tip.classList.remove('on');}
+function attachTip(el,get,focusable){
+  el.addEventListener('pointerenter',function(e){tipShow(get());tipMove(e);});
+  el.addEventListener('pointermove',tipMove);
+  el.addEventListener('pointerleave',tipHide);
+  if(focusable){
+    el.setAttribute('tabindex','0');
+    el.addEventListener('focus',function(){tipShow(get());var r=el.getBoundingClientRect();tipMove({clientX:r.left+r.width/2,clientY:r.top+r.height/2});});
+    el.addEventListener('blur',tipHide);
+  }
+}
+var hlOn=false;
+function clearHL(){if(!hlOn)return;hlOn=false;document.querySelectorAll('.hl,.dim').forEach(function(e){e.classList.remove('hl','dim');});}
+function setHL(age,plan){
+  clearHL();hlOn=true;
+  var sa=age==null?null:String(age),sp=plan==null?null:String(plan);
+  document.querySelectorAll('[data-age],[data-plan]').forEach(function(el){
+    var ea=el.getAttribute('data-age'),ep=el.getAttribute('data-plan'),src=el.hasAttribute('data-src');
+    var mA=sa!==null&&ea!==null,mP=sp!==null&&ep!==null;
+    if(!mA&&!mP)return;
+    if(src){if((mA&&ea===sa)||(mP&&ep===sp))el.classList.add('hl');}
+    else{if(!((!mA||ea===sa)&&(!mP||ep===sp)))el.classList.add('dim');}
+  });
+}
+
+/* ---------- 차트 등록과 표 보기 ---------- */
+var charts=[];
+function renderTable(el,spec){
+  el.replaceChildren();
+  var tb=document.createElement('table'),th=document.createElement('thead'),tr=document.createElement('tr');
+  spec.cols.forEach(function(c){var h=document.createElement('th');h.scope='col';h.textContent=c;tr.appendChild(h);});
+  th.appendChild(tr);tb.appendChild(th);
+  var body=document.createElement('tbody');
+  spec.rows.forEach(function(r){var row=document.createElement('tr');r.forEach(function(v){var d=document.createElement('td');d.textContent=v;row.appendChild(d);});body.appendChild(row);});
+  tb.appendChild(body);el.appendChild(tb);
+}
+function reg(id,opt){
+  var card=$('#card-'+id),plot=$('.plot',card),tbl=$('.tbl',card),btn=$('.tbtn',card);
+  var c={id:id,showTable:false,lw:0};
+  c.render=function(){
+    var state=cardStates[id] || {status:'idle',message:'설정 후 조회하세요.'};
+    card.setAttribute('aria-busy',String(state.status === 'loading'));
+    if(btn)btn.disabled=state.status !== 'ready';
+    if(state.status !== 'ready'){
+      plot.hidden=false;tbl.hidden=true;plot.replaceChildren();tbl.replaceChildren();
+      var legend=$('.legend',card);if(legend && id !== 'e' && id !== 'f')legend.replaceChildren();
+      var box=document.createElement('div');box.className='card-status '+state.status;box.setAttribute('role','status');
+      var text=document.createElement('span');text.textContent=state.message;box.appendChild(text);
+      if(state.status === 'error' || state.status === 'empty'){
+        var retry=document.createElement('button');retry.type='button';retry.className='tbtn';retry.textContent='다시 조회';retry.addEventListener('click',function(){retryCard(id);});box.appendChild(retry);
+      }
+      plot.appendChild(box);return;
+    }
+    if(c.showTable&&opt.table){plot.hidden=true;tbl.hidden=false;renderTable(tbl,opt.table());return;}
+    plot.hidden=false;tbl.hidden=true;
+    var w=Math.max(plot.clientWidth||600,opt.minW||0);
+    plot.replaceChildren();opt.draw(plot,w);
+  };
+  if(btn)btn.addEventListener('click',function(){c.showTable=!c.showTable;btn.setAttribute('aria-pressed',String(c.showTable));btn.textContent=c.showTable?'차트로 보기':'표로 보기';c.render();});
+  if(window.ResizeObserver){
+    var pend=0;
+    new ResizeObserver(function(){
+      var w=plot.clientWidth;if(!w||w===c.lw)return;c.lw=w;
+      if(pend)return;pend=requestAnimationFrame(function(){pend=0;c.render();});
+    }).observe(plot);
+  }
+  charts.push(c);
+}
+
+/* ---------- 공통: 요금제 가로축(월정액 + 계열 괄호) ---------- */
+function planAxis(svg,L,cw,y0,caption,showInf){
+  T(svg,L-8,y0+12,caption,'','end');
+  PLANS.forEach(function(p,i){
+    var x=L+i*cw+cw/2;
+    var t=T(svg,x,y0+12,String(+(p.fee/10000).toFixed(1)),'','middle');
+    t.style.fontSize='10px';t.setAttribute('data-plan',i);t.setAttribute('data-src','1');
+    if(showInf&&p.lim==null){var u=T(svg,x,y0+25,'∞','t2','middle');u.style.fontSize='12px';}
+  });
+  var yb=y0+(showInf?34:22);
+  FAM.forEach(function(fn,f){
+    var idx=famPlans[f];
+    var x1=L+idx[0]*cw+2,x2=L+(idx[idx.length-1]+1)*cw-2;
+    S('line',{x1:x1,x2:x2,y1:yb,y2:yb,'class':'axl'},svg);
+    T(svg,(x1+x2)/2,yb+14,fn,'t2','middle');
+  });
+}
+
+/* ---------- A: 연령대 x 요금제 히트맵 ---------- */
+function drawA(host,W){
+  var L=96,Rm=8,T0=6,rowH=36,gap=2,cols=PLANS.length;
+  var cw=(W-L-Rm)/cols,H=T0+AGE.length*rowH+50;
+  var svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'연령대별 요금제 가입 비중 히트맵. 자세한 값은 표로 보기에서 확인합니다.'},host);
+  var pct=SHARES;
+  var maxP=Math.max.apply(null,pct.map(function(r){return Math.max.apply(null,r);}));
+  AGE.forEach(function(ag,a){
+    var y=T0+a*rowH;
+    var lb=T(svg,L-10,y+rowH/2,ag,'t2 tb','end');lb.setAttribute('data-age',a);lb.setAttribute('data-src','1');
+    T(svg,L-10,y+rowH/2+12,'n='+fmt(AGE_N[a]),'','end').style.fontSize='10px';
+    PLANS.forEach(function(p,pi){
+      var n=CNT[a][pi],v=pct[a][pi];
+      var b=n?Math.min(7,Math.max(1,Math.ceil(v/maxP*7))):0;
+      var x=L+pi*cw;
+      var r=S('rect',{x:x+gap/2,y:y+gap/2,width:cw-gap,height:rowH-gap,rx:3,'data-age':a,'data-plan':pi,'data-src':'1'},svg);
+      r.style.fill=b?'var(--q'+b+')':'var(--empty)';
+      if(n){
+        var tx=T(svg,x+cw/2,y+rowH/2+4,String(n),'','middle');
+        tx.style.fill='var(--qt'+b+')';tx.style.fontSize='10px';tx.setAttribute('pointer-events','none');
+      }
+      attachTip(r,function(){return {title:AGE[a]+'세 · '+p.name,rows:[
+        {label:'연령대 내 비중',value:v === null ? '-' : v.toFixed(1)+'%'},
+        {label:'가입자',value:fmt(n)+'명'},
+        {label:'월정액',value:fmt(p.fee)+'원'}]};},false);
+      r.addEventListener('pointerenter',function(){setHL(a,pi);});
+      r.addEventListener('pointerleave',clearHL);
+    });
+  });
+  planAxis(svg,L,cw,T0+AGE.length*rowH+4,'월정액(만원)',false);
+  var lg=$('#lg-a');
+  lg.replaceChildren();
+  var s1=document.createElement('span');s1.textContent='낮음';
+  var rp=document.createElement('span');rp.className='ramp';
+  for(var q=1;q<=7;q++){var i=document.createElement('i');i.style.background='var(--q'+q+')';rp.appendChild(i);}
+  var s2=document.createElement('span');s2.textContent='높음 (최대 '+maxP.toFixed(1)+'%)';
+  var s3=document.createElement('span');s3.textContent='회색 칸 = 가입자 없음';
+  lg.appendChild(s1);lg.appendChild(rp);lg.appendChild(s2);lg.appendChild(s3);
+}
+function tableA(){
+  var cols=['요금제','월정액(만원)'].concat(AGE.map(function(a){return a+'세';}));
+  var rows=PLANS.map(function(p,i){
+    return [p.name,String(+(p.fee/10000).toFixed(1))].concat(AGE.map(function(_,a){return fmt(CNT[a][i])+'명 ('+valueText(SHARES[a][i],1)+'%)';}));
+  });
+  return {cols:cols,rows:rows};
+}
+
+/* ---------- B: 연령대별 카테고리 구성 ---------- */
+function catColor(ci){return ci===5?'var(--s0)':'var(--s'+(ci+1)+')';}
+function drawB(host,W){
+  var L=70,Rm=8,rowH=40,gap=2,T0=2,H=T0+AGE.length*rowH+2;
+  var svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'연령대별 콘텐츠 카테고리 사용 구성비. 자세한 값은 표로 보기에서 확인합니다.'},host);
+  var d=M[cur].age;
+  AGE.forEach(function(ag,a){
+    var y=T0+a*rowH;
+    var g=S('g',{'data-age':a},svg);
+    var lb=T(g,L-10,y+rowH/2,ag,'t2 tb','end');
+    if(!d[a].total)T(g,L,y+rowH/2+4,'사용량 없음','t2');
+    var bw=W-L-Rm-(CAT.length-1)*gap,x=L;
+    d[a].sh.forEach(function(s,ci){
+      var w=bw*s;
+      var r=S('rect',{x:x,y:y+6,width:w,height:rowH-12,rx:2},g);
+      r.style.fill=catColor(ci);
+      if(w>=34){
+        var tx=T(g,x+w/2,y+rowH/2+4,Math.round(s*100)+'%','','middle');
+        tx.style.fill='var(--bt'+(ci+1)+')';tx.setAttribute('pointer-events','none');
+      }
+      attachTip(r,function(){return {title:ag+'세 · '+CAT[ci],rows:[
+        {label:'구성비',value:(s*100).toFixed(1)+'%',color:catColor(ci)},
+        {label:'사용량',value:fmt(d[a].gb[ci])+' GB'},
+        {label:'연령대 총사용량',value:fmt(d[a].total)+' GB'}]};},true);
+      r.addEventListener('pointerenter',function(){setHL(a,null);});
+      r.addEventListener('pointerleave',clearHL);
+      x+=w+gap;
+    });
+  });
+  var lg=$('#lg-b');
+  if(!lg.childNodes.length){
+    CAT.forEach(function(c,ci){
+      var s=document.createElement('span');var sw=document.createElement('i');sw.className='sw';sw.style.background=catColor(ci);
+      s.appendChild(sw);s.appendChild(document.createTextNode(c));lg.appendChild(s);
+    });
+  }
+}
+function tableB(){
+  var d=M[cur].age;
+  return {cols:['연령대','총사용량(GB)'].concat(CAT.map(function(c){return c+' 비중';})),
+    rows:AGE.map(function(ag,a){return [ag+'세',fmt(d[a].total)].concat(d[a].sh.map(function(s){return (s*100).toFixed(1)+'%';}));})};
+}
+
+/* ---------- C: 사용량 집중도 ---------- */
+function drawC(host,W){
+  var H=260,L=44,Rm=18,T0=14,B0=40,pw=W-L-Rm,ph=H-T0-B0;
+  function X(p){return L+pw*p/100;}function Y(v){return T0+ph*(1-v/100);}
+  var svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'사용량 집중도 곡선. 자세한 값은 표로 보기에서 확인합니다.'},host);
+  [0,25,50,75,100].forEach(function(v){
+    S('line',{x1:L,x2:W-Rm,y1:Y(v),y2:Y(v),'class':v===0?'axl':'grd'},svg);
+    T(svg,L-8,Y(v)+4,v+'%','','end');
+  });
+  [0,20,40,60,80,100].forEach(function(p){T(svg,X(p),H-B0+16,p+'%','','middle');});
+  T(svg,L+pw/2,H-6,'사용량 상위 고객 (누적 %)','t2','middle');
+  var mo=M[cur];
+  var points=mo.conc.filter(function(point){return point.share !== null;});
+  var pts=[{p:0,share:0}].concat(points);
+  var area='M'+X(0)+' '+Y(0);
+  pts.forEach(function(q){area+=' L'+X(q.p)+' '+Y(q.share*100);});
+  area+=' Z';
+  var wash=S('path',{d:area,stroke:'none'},svg);wash.style.fill='var(--s1)';wash.style.opacity='.1';
+  S('line',{x1:X(0),y1:Y(0),x2:X(100),y2:Y(100),'class':'axl'},svg);
+  T(svg,X(66),Y(52),'균등 분배','','start').setAttribute('transform','rotate(-'+(Math.atan2(ph,pw)*180/Math.PI).toFixed(1)+' '+X(66)+' '+Y(52)+')');
+  var path='';pts.forEach(function(q,i){path+=(i?' L':'M')+X(q.p)+' '+Y(q.share*100);});
+  var ln=S('path',{d:path,fill:'none','stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round'},svg);ln.style.stroke='var(--s1)';
+  [1,5,10,20,50].forEach(function(p){
+    var q=mo.conc.filter(function(o){return o.p===p;})[0];
+    if(!q || q.share === null)return;
+    var c=S('circle',{cx:X(p),cy:Y(q.share*100),r:4,'stroke-width':2},svg);c.style.fill='var(--s1)';c.style.stroke='var(--surface)';
+  });
+  var t10=mo.conc.filter(function(o){return o.p===10;})[0];
+  if(t10 && t10.share !== null)T(svg,X(10)+10,Y(t10.share*100)+18,'상위 10% → '+(t10.share*100).toFixed(1)+'%','t2 tb','start');
+  var cross=S('line',{y1:T0,y2:T0+ph,'class':'axl'},svg);cross.style.display='none';cross.style.stroke='var(--ink2)';
+  var dot=S('circle',{r:5,'stroke-width':2},svg);dot.style.display='none';dot.style.fill='var(--s1)';dot.style.stroke='var(--surface)';
+  var ov=S('rect',{x:L,y:T0,width:pw,height:ph,fill:'transparent'},svg);
+  function nearest(e){
+    var b=svg.getBoundingClientRect();var px=(e.clientX-b.left-L)/pw*100;
+    var best=points[0],bd=1e9;points.forEach(function(o){var dd=Math.abs(o.p-px);if(dd<bd){bd=dd;best=o;}});return best;
+  }
+  function show(o,e){
+    cross.setAttribute('x1',X(o.p));cross.setAttribute('x2',X(o.p));cross.style.display='';
+    dot.setAttribute('cx',X(o.p));dot.setAttribute('cy',Y(o.share*100));dot.style.display='';
+    tipShow({title:'상위 '+o.p+'% 고객 ('+fmt(o.k)+'명)',rows:[
+      {label:'사용량 점유율',value:(o.share*100).toFixed(1)+'%',color:'var(--s1)'},
+      {label:'사용량',value:fmt(o.gb)+' / '+fmt(o.total)+' GB'}]});
+    tipMove(e);
+  }
+  ov.addEventListener('pointermove',function(e){show(nearest(e),e);});
+  ov.addEventListener('pointerleave',function(){cross.style.display='none';dot.style.display='none';tipHide();});
+}
+function tableC(){
+  var mo=M[cur];
+  return {cols:['상위 고객 비율','고객 수(명)','사용량(GB)','사용량 점유율'],
+    rows:mo.conc.map(function(o){return ['상위 '+o.p+'%',fmt(o.k),fmt(o.gb),o.share===null?'-':(o.share*100).toFixed(1)+'%'];})};
+}
+
+/* ---------- D: 결합·인터넷 보유 가족 ---------- */
+function drawD(host,W){
+  var total=FAMGRP.reduce(function(s,g){return s+g.fam;},0);
+  var H=46,gap=2,bw=W-(FAMGRP.length-1)*gap,x=0;
+  var svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'결합과 인터넷 보유 상태별 가족 수'},host);
+  FAMGRP.forEach(function(g){
+    var w=bw*g.fam/total;
+    var r=S('rect',{x:x,y:8,width:w,height:30,rx:3},svg);r.style.fill=g.color;
+    if(w>=70){var tx=T(svg,x+w/2,27,fmt(g.fam)+'곳','tb','middle');tx.style.fill=g.tc;tx.setAttribute('pointer-events','none');}
+    attachTip(r,function(){return {title:g.name,rows:[
+      {label:'가족 수',value:fmt(g.fam)+'곳 ('+(g.fam/total*100).toFixed(1)+'%)',color:g.color},
+      {label:'구성원 수',value:fmt(g.mem)+'명'},
+      {label:'평균 가족 규모',value:valueText(g.average,2)+'명'}]};},true);
+    x+=w+gap;
+  });
+  var rows=document.createElement('div');rows.className='fam-rows';
+  FAMGRP.forEach(function(g){
+    var r=document.createElement('div');r.className='fam-row';
+    var sw=document.createElement('i');sw.className='sw';sw.style.background=g.color;
+    var nm=document.createElement('b');nm.textContent=g.name;
+    var nu=document.createElement('span');nu.className='num';nu.textContent='가족 '+fmt(g.fam)+'곳 · '+fmt(g.mem)+'명';
+    r.appendChild(sw);r.appendChild(nm);r.appendChild(nu);
+    var sub=document.createElement('span');sub.className='sub';
+    sub.textContent='평균 가족 규모 '+valueText(g.average,2)+'명'+(g.note?' · '+g.note:'');
+    r.appendChild(sub);rows.appendChild(r);
+  });
+  host.appendChild(rows);
+}
+
+/* ---------- E: 월별 평균 vs 중앙값 ---------- */
+function drawE(host,W){
+    const L=60,Rm=40,T0=18,ph=150,count=M.length;
+    W=Math.max(W,count*82+L+Rm);
+    const pw=W-L-Rm,H=T0+ph+58;
+    const ymax=Math.max(5,Math.ceil(Math.max.apply(null,M.map(function(row){return row.avg || 0;}))/5)*5);
+    function X(index){return L+pw*(index+.5)/count;}
+    function Y(value){return T0+ph*(1-value/ymax);}
+    const svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'월별 평균과 중앙값 사용량 및 이용자 수'},host);
+    const band=S('rect',{x:X(cur)-pw/count/2,y:T0,width:pw/count,height:ph},svg);band.style.fill='var(--sel)';
+    for(let value=0;value<=ymax;value+=Math.max(5,Math.ceil(ymax/5/5)*5)){
+        S('line',{x1:L,x2:W-Rm,y1:Y(value),y2:Y(value),'class':'grd'},svg);T(svg,L-8,Y(value)+4,String(value),'','end');
+    }
+    T(svg,L-8,12,'GB','','end');
+    M.forEach(function(row,index){
+        T(svg,X(index),T0+ph+18,row.m.k,'t2','middle');
+        T(svg,X(index),T0+ph+32,row.m.partial?'부분 월':'기간 내 월','','middle');
+        T(svg,X(index),T0+ph+48,fmt(row.users)+'명','t2','middle');
+    });
+    [['avg','var(--s1)'],['median','var(--s2)']].forEach(function(series){
+        for(let index=1;index<count;index++){
+            const line=S('path',{d:'M'+X(index-1)+' '+Y(M[index-1][series[0]])+' L'+X(index)+' '+Y(M[index][series[0]]),fill:'none','stroke-width':2},svg);
+            line.style.stroke=series[1];if(M[index-1].m.partial || M[index].m.partial)line.style.opacity='.35';
+        }
+        M.forEach(function(row,index){
+            const dot=S('circle',{cx:X(index),cy:Y(row[series[0]]),r:4.5,'stroke-width':2},svg);
+            dot.style.fill=row.m.partial?'var(--surface)':series[1];dot.style.stroke=series[1];
+        });
+    });
+    M.forEach(function(row,index){
+        const hit=S('rect',{x:L+pw*index/count,y:T0,width:pw/count,height:ph+55,fill:'transparent',role:'button','aria-label':row.m.label+' 선택'},svg);hit.style.cursor='pointer';
+        attachTip(hit,function(){return {title:row.m.label,rows:[{label:'평균',value:valueText(row.avg,2)+' GB'},{label:'중앙값',value:valueText(row.median,2)+' GB'},{label:'이용자',value:fmt(row.users)+'명'},{label:'총사용량',value:fmt(row.total,2)+' GB'}]};},true);
+        hit.addEventListener('click',function(){setMonth(index);});
+        hit.addEventListener('keydown',function(event){if(event.key==='Enter' || event.key===' '){event.preventDefault();setMonth(index);}});
+    });
+}
+function tableE(){
+    return {cols:['월','이용자(명)','총사용량(GB)','평균(GB)','중앙값(GB)','기간'],rows:M.map(function(row){return [row.m.k,fmt(row.users),fmt(row.total,2),valueText(row.avg,2),valueText(row.median,2),row.m.partial?'부분 월':'조회 범위 내 월'];})};
+}
+
+/* ---------- F: 요금제별 평균 사용량 vs 기본 제공량 ---------- */
+function drawF(host,W){
+  var L=58,Rm=8,T0=14,ph=230,cols=PLANS.length,cw=(W-L-Rm)/cols;
+  var mo=M[cur];
+  var vals=mo.plan.map(function(p){return p.avg || 0;}).concat(PLANS.map(function(p){return p.lim || 0;}));
+  var ymax=Math.max(120,Math.ceil(Math.max.apply(null,vals)/30)*30);
+  var H=T0+ph+4+34+24;
+  function Y(v){return T0+ph*(1-v/ymax);}
+  var svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'요금제별 이용자당 평균 사용량과 기본 제공량. 자세한 값은 표로 보기에서 확인합니다.'},host);
+  for(var v=0;v<=ymax;v+=30){S('line',{x1:L,x2:W-Rm,y1:Y(v),y2:Y(v),'class':v===0?'axl':'grd'},svg);T(svg,L-8,Y(v)+4,String(v),'','end');}
+  T(svg,L-8,T0-2,'GB','','end').style.fontSize='10px';
+  var over=0;
+  PLANS.forEach(function(p,i){
+    var avg=mo.plan[i].avg,n=PSUB[i],x=L+i*cw;
+    var g=S('g',{'data-plan':i},svg);
+    if(n<10)g.style.opacity='.45';
+    var isOver=avg!=null&&p.lim!=null&&avg>p.lim;if(isOver)over++;
+    if(p.lim!=null){
+      var tr=S('rect',{x:x+3,y:Y(p.lim),width:cw-6,height:Y(0)-Y(p.lim),rx:2},g);tr.style.fill='var(--track)';
+    }
+    var bwid=(cw-6)*.52;
+    if(avg!=null){var bar=S('rect',{x:x+(cw-bwid)/2,y:Y(avg),width:bwid,height:Math.max(0,Y(0)-Y(avg)),rx:2},g);
+    bar.style.fill=isOver?'var(--serious)':'var(--s1)';}
+    if(isOver){var tri=T(g,x+cw/2,Y(avg)-4,'▲','','middle');tri.style.fill='var(--serious)';tri.style.fontSize='9px';}
+    var hit=S('rect',{x:x,y:T0,width:cw,height:ph,fill:'transparent'},g);
+    attachTip(hit,function(){
+      var rows=[
+        {label:'이용자당 평균 사용량',value:avg===null?'해당 없음':avg.toFixed(1)+' GB',color:isOver?'var(--serious)':'var(--s1)'},
+        {label:'기본 제공량',value:p.lim==null?'무제한':p.lim+' GB'},
+        {label:'가입자',value:fmt(n)+'명'+(n<10?' (표본 작음)':'')},
+        {label:'월정액',value:fmt(p.fee)+'원'}];
+      if(isOver)rows.push({label:'제공량 초과',value:'+'+(avg-p.lim).toFixed(1)+' GB'});
+      return {title:p.name,rows:rows};
+    },true);
+    hit.addEventListener('pointerenter',function(){setHL(null,i);});
+    hit.addEventListener('pointerleave',clearHL);
+  });
+  planAxis(svg,L,cw,T0+ph+4,'만원',true);
+  var unl=PLANS.filter(function(p){return p.lim==null;}).length;
+  $('#note-f').textContent='선택월 기준 제공량 초과 요금제 '+over+'개, 무제한 요금제 '+unl+'개는 제공량 막대가 없습니다. 현재 요금제로 과거 사용량을 분류하므로 요금제 변경 효과는 볼 수 없습니다.';
+}
+function tableF(){
+  var mo=M[cur];
+  return {cols:['요금제','월정액(만원)','가입자(명)','평균 사용(GB)','기본 제공량(GB)','상태'],
+    rows:PLANS.map(function(p,i){
+      var avg=mo.plan[i].avg;
+      return [p.name,String(+(p.fee/10000).toFixed(1)),fmt(PSUB[i]),valueText(avg,1),p.lim==null?'무제한':String(p.lim),avg!=null&&p.lim!=null&&avg>p.lim?'제공량 초과':'-'];
+    })};
+}
+
+/* ---------- 필터, KPI, 조회 상태 ---------- */
+function buildSeg(){
+    const seg=$('#seg');seg.replaceChildren();
+    const years=new Set(MONTHS.map(function(month){return month.k.slice(0,4);}));
+    MONTHS.forEach(function(month,index){
+        const button=document.createElement('button');button.type='button';button.id='m'+index;
+        const label=(years.size>1?month.k.slice(0,4)+'년 ':'')+Number(month.k.slice(5,7))+'월';
+        button.appendChild(document.createTextNode(label));button.title=month.k;button.setAttribute('aria-label',month.label+(month.partial?' 부분 월':''));
+        if(month.partial){const badge=document.createElement('small');badge.textContent='부분';button.appendChild(badge);}
+        button.addEventListener('click',function(){setMonth(index);});seg.appendChild(button);
+    });
+}
+function updateChrome(){
+    MONTHS.forEach(function(month,index){$('#m'+index).setAttribute('aria-pressed',String(index===cur));});
+    const month=MONTHS[cur],mo=M[cur],range=rowsFor('OPS_015')[0];
+    $('#mchip').textContent=month ? (month.partial?'부분 월 · 월 합계 비교에 주의하세요':'조회 범위에 포함된 월 · 적재 누락은 별도 확인') : '기준월: 조회 전';
+    $('#mchip').className='chip'+(month && month.partial?' warn':'');
+    $('#range-chip').textContent=range && range.min_date && range.max_date ? '사용량 기간 '+range.min_date+' ~ '+range.max_date : '사용량 기간: '+(loaded('OPS_015')?'데이터 없음':'조회 전');
+    $('#snapshot-chip').textContent='가입 비중 기준일: '+OPS_017_AS_OF_DATE+' · 가입자 수 기준일: '+(session ? session.as_of_date : '조회 전');
+    $('#k1').textContent=loaded('OPS_002') && rowsFor('OPS_002').length ? fmt(rowsFor('OPS_002').reduce(function(sum,row){return sum+row.subscriber_count;},0)) : '-';
+    $('#k1s').textContent=loaded('OPS_002') && !rowsFor('OPS_002').length ? '해당 기준일의 가입 스냅샷이 없습니다.' : '현재 가입 스냅샷 기준';
+    $('#k2').textContent=mo && mo.avg!==null ? valueText(mo.avg,1)+' / '+valueText(mo.median,1)+' GB' : '-';
+    $('#k2s').textContent=mo && mo.users!==null ? mo.m.k+' · 이용자 '+fmt(mo.users)+'명' : '월별 평균 / 중앙값';
+    const families=FAMGRP.reduce(function(sum,row){return sum+row.fam;},0),bundled=FAMGRP.filter(function(row){return row.has_bundle;}).reduce(function(sum,row){return sum+row.fam;},0);
+    $('#k3').textContent=loaded('OPS_023') && families ? (bundled/families*100).toFixed(1)+'%' : '-';
+    $('#k3s').textContent=loaded('OPS_023') ? '가족 '+fmt(families)+'곳 중 '+fmt(bundled)+'곳' : '현재 가족 스냅샷 기준';
+    const top=mo && loaded('OPS_020:'+mo.m.k+':10') && mo.conc.find(function(point){return point.p===10;});
+    $('#k4').textContent=top && top.share!==null ? (top.share*100).toFixed(1)+'%' : '-';
+    $('#k4s').textContent=top ? mo.m.k+' · 상위 '+fmt(top.k)+'명' : '선택 월 기준';
+    if(cardStates.f.status!=='ready')$('#note-f').textContent='현재 요금제로 과거 사용량을 분류합니다. 기본 제공량 초과가 추가 요금 발생을 뜻하지는 않습니다.';
+    if(session){
+        const values=Object.values(session.raw),pending=values.filter(function(value){return value.status==='loading';}).length,errors=values.filter(function(value){return value.status==='error';}).length;
+        $('#connection-status').textContent=pending ? '조회 중 · 대기/실행 '+pending+'건'+(errors?' · 실패 '+errors+'건':'') : errors ? '일부 조회 실패 · 각 카드의 다시 조회 버튼을 사용하세요.' : '조회 완료 · 새로고침하면 캐시를 비우고 최신 결과를 가져옵니다.';
+    }
+}
+function renderAll(){
+    rebuildData();updateChrome();charts.forEach(function(chart){chart.render();});
+}
+function setMonth(index){
+    if(index<0 || index>=MONTHS.length || index===cur)return;
+    cur=index;tipHide();clearHL();renderAll();loadMonth(session,index,false);
+}
+reg('a',{minW:700,draw:drawA,table:tableA});
+reg('d',{minW:0,draw:drawD});
+reg('b',{minW:360,draw:drawB,table:tableB});
+reg('c',{minW:300,draw:drawC,table:tableC});
+reg('e',{minW:340,draw:drawE,table:tableE});
+reg('f',{minW:660,draw:drawF,table:tableF});
+$('#snapshot-date').value=CONFIG.as_of_date;
+$('#connection-form').addEventListener('submit',connect);
+renderAll();
+if(CONFIG.webhook_url && CONFIG.as_of_date)connect();
+})();
+</script>
+</body></html>
