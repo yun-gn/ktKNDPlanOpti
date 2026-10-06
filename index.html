@@ -197,7 +197,7 @@ thead th { font-weight: 700; }
   <header class="top">
     <div class="brand"><span class="kt">KT</span>요금제 상담 AI</div>
     <div class="top-actions">
-      <button class="btn" type="button" id="ops" disabled title="준비 중: 운영 워크플로우(별도 Webhook)를 새 탭으로 엽니다">운영</button>
+      <button class="btn" type="button" id="ops" disabled title="운영 대시보드로 이동합니다. 대시보드의 상담 버튼으로 돌아옵니다">운영</button>
       <button class="btn" type="button" id="reset">새 대화</button>
     </div>
   </header>
@@ -292,7 +292,7 @@ thead th { font-weight: 700; }
     // false: 다 만든 뒤 한 번에 받습니다. 요금제 검토 보고서는 Respond to Webhook1(v1.4)이 보내는데, 이 노드는 스트리밍 응답에 쓰지 못해
     // 스트리밍으로 받으면 보고서 대신 중간 Agent의 JSON만 옵니다. 검토는 10초 안팎, 후속 질문은 2초 안팎이라 100초 제한에 걸리지 않습니다
     stream: false,
-    opsUrl: '',             // 운영 워크플로우(별도 Webhook) 주소. 비어 있으면 운영 버튼이 꺼진 채로 둡니다
+    opsUrl: '/operation-dashboard.html', // 운영 대시보드 (server.js가 제공). 비어 있으면 운영 버튼이 꺼진 채로 둡니다
     idPattern: /^U\d{5}$/,   // 고객 ID 형식: U + 숫자 5자리 (예: U00603)
     // 후보 고객 4명: 카드로 보여 주고 왼쪽 패널에 정보를 채웁니다. 입력한 ID가 여기 없어도 n8n에는 그대로 전달됩니다
     // 2026-10-02 ai_personalization 뷰 조회 값. 월평균은 2026-04~09 (완전한 6개월) 기준입니다
@@ -730,7 +730,8 @@ thead th { font-weight: 700; }
   var ops = $('#ops');
   if (CONFIG.opsUrl) {
     ops.disabled = false;
-    ops.addEventListener('click', function () { window.open(CONFIG.opsUrl, '_blank', 'noopener'); });
+    // 같은 탭에서 오갑니다. 상담 내용은 이 페이지를 떠나면 사라집니다
+    ops.addEventListener('click', function () { location.href = CONFIG.opsUrl; });
   }
 
   function ask(t, intent) {

@@ -15,6 +15,8 @@ const STREAM_TIMEOUT_MS = 610000;        // 페이지의 streamTimeoutMs(600초)
 const MAX_BODY = 64 * 1024;
 
 const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+// 운영 대시보드: 상담 화면의 운영 버튼과 서로 오갑니다. n8n 운영 Webhook은 브라우저가 직접 부릅니다
+const opsHtml = fs.readFileSync(path.join(__dirname, 'operation-dashboard.html'), 'utf8');
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -71,6 +73,9 @@ http.createServer((req, res) => {
   } else if (url === '/' || url === '/index.html') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
     res.end(req.method === 'HEAD' ? undefined : html);
+  } else if (url === '/operation-dashboard.html') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+    res.end(req.method === 'HEAD' ? undefined : opsHtml);
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' }).end('not found');
   }
