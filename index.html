@@ -49,7 +49,7 @@ body {
   line-height: 1.55;
   padding: 12px 16px;
 }
-button, textarea { font: inherit; color: inherit; }
+button, textarea, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -61,11 +61,24 @@ button { cursor: pointer; }
 .status { font-size: 13px; color: var(--muted); }
 .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
 
-/* 분석 기간 */
-.period { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+/* 1단계: 고객 ID 입력 */
+.idbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+.idbar label { display: flex; flex-direction: column; gap: 4px; }
+.idbar input { width: 190px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; font-size: 14px; font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.idbar input::placeholder { text-transform: none; letter-spacing: 0; font-family: var(--font-body); color: var(--muted); }
+.idbar input[aria-invalid="true"] { border-color: var(--bad); }
+.idbar .btn { padding: 7px 14px; }
+.idnote { font-size: 12px; color: var(--muted); padding-bottom: 9px; }
+.idnote.bad { color: var(--bad); }
+.idnote.ok { color: var(--down); }
+
+/* 2단계: 분석 기간 */
+.period { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; transition: opacity 0.15s; }
+.period.off { opacity: 0.5; }
 .period label { display: flex; flex-direction: column; gap: 4px; }
 .period input { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 14px; color: inherit; font-variant-numeric: tabular-nums; }
 .period input:invalid { border-color: var(--bad); }
+.period input:disabled, .idbar input:disabled { cursor: not-allowed; }
 .period .tilde { padding-bottom: 8px; color: var(--muted); }
 .presets { display: flex; gap: 6px; flex-wrap: wrap; }
 .presets .btn { padding: 7px 12px; }
@@ -73,22 +86,6 @@ button { cursor: pointer; }
 .period-note { font-size: 12px; color: var(--muted); padding-bottom: 9px; }
 .brand { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
 .brand .kt { color: var(--accent); margin-right: 6px; letter-spacing: 0.02em; }
-
-/* 상담 고객 선택: 예시 고객 4명 중 하나 */
-.customers { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.customers legend { padding: 0; margin-bottom: 6px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
-.pick { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
-.pick input { position: absolute; opacity: 0; pointer-events: none; }
-.pick .nm { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pick .nm small { font-family: var(--font-mono); font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 6px; }
-.pick .rate { font-size: 13px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pick .why { font-size: 12px; color: var(--muted); line-height: 1.4; }
-.pick:hover { border-color: var(--accent); }
-.pick:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.pick:has(input:checked) .nm { color: var(--accent); }
-.pick:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-.pick:has(input:disabled) { cursor: not-allowed; opacity: 0.55; }
-.pick:has(input:checked:disabled) { opacity: 1; }
 
 /* 본문: 왼쪽 고객 정보, 오른쪽 채팅 */
 .work { flex: 1; min-height: 0; display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 12px; }
@@ -127,8 +124,9 @@ button { cursor: pointer; }
 .composer textarea { flex: 1; min-width: 0; resize: none; max-height: 160px; border: 1px solid var(--line); background: var(--sunken); border-radius: 8px; padding: 10px 12px; line-height: 1.45; }
 .composer textarea::placeholder { color: var(--muted); }
 .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 14px; font-size: 14px; font-weight: 500; }
-.btn:hover { border-color: var(--accent); }
+.btn:hover:not(:disabled) { border-color: var(--accent); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); padding: 10px 16px; }
+.idbar .btn.primary { padding: 7px 16px; }
 .btn:disabled, .composer textarea:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn.mkt { padding: 10px 12px; white-space: nowrap; }
 .btn.mkt[aria-pressed="true"] { background: var(--sunken); border-color: var(--accent); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
@@ -169,7 +167,6 @@ thead th { font-weight: 700; }
   .cust-body { max-height: 46vh; overflow-y: auto; }
 }
 @media (max-width: 600px) {
-  .customers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .feed { padding: 14px; }
   .hint { display: none; }
 }
@@ -186,22 +183,26 @@ thead th { font-weight: 700; }
     </div>
   </header>
 
-  <div class="period" role="group" aria-label="분석 기간">
-    <label><span class="label">시작일</span><input type="date" id="from" required></label>
+  <!-- 1단계: 고객 ID 입력 -->
+  <form class="idbar" id="idForm" autocomplete="off" novalidate aria-label="고객 ID 입력">
+    <label><span class="label">고객 ID</span><input type="text" id="uid" placeholder="예: U00603" maxlength="6" inputmode="text" autocapitalize="characters" spellcheck="false" aria-describedby="idNote"></label>
+    <button class="btn primary" type="submit" id="idBtn">확인</button>
+    <span class="idnote" id="idNote" role="status">먼저 상담할 고객 ID를 입력하세요</span>
+  </form>
+
+  <!-- 2단계: 개월 수 설정 (고객 ID 확인 후 활성화) -->
+  <div class="period off" id="period" role="group" aria-label="분석 기간">
+    <label><span class="label">시작일</span><input type="date" id="from" required disabled></label>
     <span class="tilde">~</span>
-    <label><span class="label">종료일</span><input type="date" id="to" required></label>
+    <label><span class="label">종료일</span><input type="date" id="to" required disabled></label>
     <div class="presets" id="presets">
-      <button class="btn" type="button" data-months="1">1개월</button>
-      <button class="btn" type="button" data-months="3">3개월</button>
-      <button class="btn" type="button" data-months="6">6개월</button>
-      <button class="btn" type="button" data-months="12">12개월</button>
+      <button class="btn" type="button" data-months="1" disabled>1개월</button>
+      <button class="btn" type="button" data-months="3" disabled>3개월</button>
+      <button class="btn" type="button" data-months="6" disabled>6개월</button>
+      <button class="btn" type="button" data-months="12" disabled>12개월</button>
     </div>
     <span class="period-note" id="periodNote"></span>
   </div>
-
-  <fieldset class="customers" id="customers">
-    <legend class="label">상담 고객</legend>
-  </fieldset>
 
   <main class="work">
   <details class="cust" id="cust">
@@ -240,7 +241,7 @@ thead th { font-weight: 700; }
           <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/></svg>이름 · 연락처 · 주소</li>
         </ul>
       </div>
-      <p class="sample-note">왼쪽 고객 정보는 2026-10-02에 조회한 값입니다. 답변 내용은 n8n 워크플로우가 돌려준 결과입니다.</p>
+      <p class="sample-note">왼쪽 고객 정보는 예시 고객 4명만 2026-10-02에 조회한 값으로 표시합니다. 그 밖의 ID는 ID만 표시되며, 분석 내용은 n8n 워크플로우가 돌려준 결과입니다.</p>
     </div>
   </details>
 
@@ -248,9 +249,9 @@ thead th { font-weight: 700; }
     <div class="feed" id="feed" role="log" aria-live="polite"></div>
     <div class="composer">
       <form id="form" autocomplete="off">
-        <textarea id="msg" rows="1" placeholder="메시지를 입력하세요" aria-label="메시지 입력"></textarea>
-        <button class="btn mkt" type="button" id="mkt" aria-pressed="false" title="다음 메시지 한 번만 마케팅 메시지 생성 Agent로 보냅니다">마케팅</button>
-        <button class="btn primary" type="submit" id="send">전송</button>
+        <textarea id="msg" rows="1" placeholder="고객 ID를 확인하면 입력할 수 있습니다" aria-label="메시지 입력" disabled></textarea>
+        <button class="btn mkt" type="button" id="mkt" aria-pressed="false" title="다음 메시지 한 번만 마케팅 메시지 생성 Agent로 보냅니다" disabled>마케팅</button>
+        <button class="btn primary" type="submit" id="send" disabled>전송</button>
       </form>
       <div class="hint" id="hint">Enter 전송 · Shift+Enter 줄바꿈 · 분석에 1~2분 걸릴 수 있습니다</div>
     </div>
@@ -268,21 +269,18 @@ thead th { font-weight: 700; }
     streamTimeoutMs: 600000, // 스트리밍: 마케팅 보고서는 3분 넘게 걸리기도 합니다
     stream: true,            // 기본값. 헤더의 스트리밍 버튼으로 바꾸며, 이 브라우저에 기억됩니다
     opsUrl: '',             // 운영 워크플로우(별도 Webhook) 주소. 비어 있으면 운영 버튼이 꺼진 채로 둡니다
-    // 예시 고객 4명. id는 개인화 카탈로그의 user_id로 n8n에 그대로 전달됩니다. 첫 번째 고객이 기본 선택입니다
+    idPattern: /^U\d{5}$/,   // 고객 ID 형식: U + 숫자 5자리 (예: U00603)
+    // 왼쪽 패널에 정보를 보여 줄 수 있는 예시 고객 4명입니다. 입력한 ID가 여기 없어도 n8n에는 그대로 전달됩니다
     // 2026-10-02 ai_personalization 뷰 조회 값. 월평균은 2026-04~09 (완전한 6개월) 기준입니다
     users: [
       { id: 'U00603', name: '김수서', plan: '초이스90', fee: 90000, data: '무제한 · 5G',
-        services: ['티빙 스탠다드'], meta: '결합 없음 · KT 인터넷 없음', avgGb: 176.8,
-        reason: '적정 유지 확인 · 월 176.8GB 헤비 유저, 티빙 실사용' },
+        services: ['티빙 스탠다드'], meta: '결합 없음 · KT 인터넷 없음', avgGb: 176.8 },
       { id: 'U09832', name: '윤서준', plan: '베이직21GB(이월)', fee: 58000, data: '월 21GB · LTE/5G',
-        services: [], meta: '가족 정보 없음', avgGb: 71.1,
-        reason: '업셀 후보 · 제공 21GB에 월 71.1GB 사용' },
+        services: [], meta: '가족 정보 없음', avgGb: 71.1 },
       { id: 'U09327', name: '임서윤', plan: '초이스130', fee: 130000, data: '무제한 · 5G',
-        services: ['지니뮤직', '밀리의서재'], meta: '가족 정보 없음', avgGb: 5.2,
-        reason: '다운셀 후보 · 최고가 무제한에 월 5.2GB 사용' },
+        services: ['지니뮤직', '밀리의서재'], meta: '가족 정보 없음', avgGb: 5.2 },
       { id: 'U00864', name: '이현서', plan: '초이스 더블', fee: 120000, data: '무제한 · 5G',
-        services: ['Disney+ 스탠다드', '단말보험 멤버십 할인'], meta: 'KT 인터넷 보유 · 결합 없음', avgGb: 163.2,
-        reason: '결합 후보 · 인터넷 보유·미결합, Disney+ 사용 기록 없음' }
+        services: ['Disney+ 스탠다드', '단말보험 멤버십 할인'], meta: 'KT 인터넷 보유 · 결합 없음', avgGb: 163.2 }
     ],
     dataStart: '2025-10-24', // 조회 가능한 가장 이른 날짜
     defaultMonths: 6         // 기본 기간: 오늘로 끝나는 6개월
@@ -401,15 +399,16 @@ thead th { font-weight: 700; }
 
   /* ============ 화면 ============ */
   var $ = function (s) { return document.querySelector(s); };
-  var feed = $('#feed'), msg = $('#msg'), form = $('#form'), sendBtn = $('#send'), picker = $('#customers');
-  var fromIn = $('#from'), toIn = $('#to'), presets = $('#presets'), periodNote = $('#periodNote');
+  var feed = $('#feed'), msg = $('#msg'), form = $('#form'), sendBtn = $('#send'), mktBtn = $('#mkt');
+  var idForm = $('#idForm'), idIn = $('#uid'), idBtn = $('#idBtn'), idNote = $('#idNote');
+  var fromIn = $('#from'), toIn = $('#to'), presets = $('#presets'), periodBox = $('#period'), periodNote = $('#periodNote');
   var busy = false, curCtrl = null;
-  // 고객마다 대화(n8n 메모리 세션)를 따로 둡니다. 고객을 바꿨다 돌아오면 이전 대화가 그대로 보입니다
-  var user = CONFIG.users[0].id, convs = {};
+  // user가 null이면 아직 고객 ID를 확인하기 전입니다. 고객마다 대화(n8n 메모리 세션)를 따로 둡니다
+  var user = null, convs = {};
   var stream = CONFIG.stream;
   try { var saved0 = localStorage.getItem('kt-chat-stream'); if (saved0 !== null) stream = saved0 === '1'; } catch (e) { /* 저장소를 못 쓰면 기본값 */ }
   var marketing = false;   // 다음 메시지 한 번만 마케팅 Agent로 보냅니다. 보내면 다시 꺼집니다
-  function info(id) { return CONFIG.users.filter(function (u) { return u.id === id; })[0]; }
+  function info(id) { return CONFIG.users.filter(function (u) { return u.id === id; })[0] || null; }
   function won(n) { return '월 ' + Number(n).toLocaleString('ko-KR') + '원'; }
   var DOTS = '<div class="dots" aria-label="응답 생성 중"><i></i><i></i><i></i></div>';
 
@@ -427,12 +426,27 @@ thead th { font-weight: 700; }
     return '서버에 연결하지 못했습니다. 잠시 후 다시 시도하세요.';
   }
   function scrollDown() { feed.scrollTop = feed.scrollHeight; }
-  function lock(b) { busy = b; msg.disabled = b; sendBtn.disabled = b; picker.disabled = b; if (!b) msg.focus(); }
+
+  /* 입력 가능 여부를 한 곳에서 정합니다: 고객 ID 확인 전에는 기간·채팅이 잠겨 있고, 응답을 기다리는 동안은 ID와 채팅이 잠깁니다 */
+  function applyEnabled() {
+    var ready = !!user;
+    msg.disabled = busy || !ready;
+    sendBtn.disabled = busy || !ready;
+    mktBtn.disabled = !ready;
+    idIn.disabled = busy;
+    idBtn.disabled = busy;
+    fromIn.disabled = !ready;
+    toIn.disabled = !ready;
+    presets.querySelectorAll('[data-months]').forEach(function (b) { b.disabled = !ready; });
+    periodBox.classList.toggle('off', !ready);
+    msg.placeholder = ready ? '메시지를 입력하세요' : '고객 ID를 확인하면 입력할 수 있습니다';
+  }
+  function lock(b) { busy = b; applyEnabled(); if (!b && user) msg.focus(); }
   function fit() { msg.style.height = 'auto'; msg.style.height = Math.min(msg.scrollHeight, 160) + 'px'; }
 
   function setMarketing(b) {
     marketing = b;
-    $('#mkt').setAttribute('aria-pressed', b ? 'true' : 'false');
+    mktBtn.setAttribute('aria-pressed', b ? 'true' : 'false');
     $('#hint').textContent = b ? '다음 메시지 한 번만 마케팅 메시지 생성 Agent로 보냅니다 · 비워 두고 전송해도 됩니다'
       : 'Enter 전송 · Shift+Enter 줄바꿈 · 분석에 1~2분 걸릴 수 있습니다';
   }
@@ -494,39 +508,80 @@ thead th { font-weight: 700; }
     row.scrollIntoView({ block: 'start' });
   }
 
+  /* ---------- 고객 ID 입력 ---------- */
   var saved = {};   // 고객별 화면 내용
+  function guide() {
+    return '**1.** 위에 고객 ID를 입력하고 **확인**을 누르세요. (예: `U00603`)\n\n**2.** 분석할 기간(1·3·6·12개월 또는 날짜)을 정하세요.\n\n**3.** 질문을 입력하면 분석이 시작됩니다.';
+  }
   function reset() {
     if (curCtrl) { curCtrl.abort(); curCtrl = null; }
-    convs[user] = newId();
     feed.innerHTML = '';
-    add(aiRow(aiText('**' + info(user).name + '** (' + user + ') 고객을 선택했습니다. 무엇을 분석할까요?')));
+    if (!user) {
+      add(aiRow(aiText(guide())));
+    } else {
+      convs[user] = newId();
+      var u = info(user);
+      add(aiRow(aiText('**' + (u ? u.name + '** (' + user + ')' : user + '**') + ' 고객을 선택했습니다. 분석 기간을 확인한 뒤 무엇을 분석할지 입력하세요.')));
+    }
     lock(false);
   }
-  function pick(id) {
-    if (busy || id === user) return;
-    saved[user] = feed.innerHTML;
+  function setIdNote(text, kind) {
+    idNote.textContent = text;
+    idNote.className = 'idnote' + (kind ? ' ' + kind : '');
+    idIn.setAttribute('aria-invalid', kind === 'bad' ? 'true' : 'false');
+  }
+  function confirmId() {
+    if (busy) return;
+    var id = idIn.value.trim().toUpperCase();
+    idIn.value = id;
+    if (!id) { setIdNote('고객 ID를 입력하세요', 'bad'); idIn.focus(); return; }
+    if (!CONFIG.idPattern.test(id)) { setIdNote('형식이 맞지 않습니다. U와 숫자 5자리로 입력하세요 (예: U00603)', 'bad'); idIn.focus(); return; }
+    if (id === user) { setIdNote('이미 선택된 고객입니다', 'ok'); return; }
+    if (user) saved[user] = feed.innerHTML;     // 이전 고객 대화는 보관했다가, 다시 입력하면 복원합니다
     user = id;
     showUser();
-    if (saved[user]) { feed.innerHTML = saved[user]; scrollDown(); msg.focus(); }
+    applyEnabled();
+    if (saved[user]) { feed.innerHTML = saved[user]; scrollDown(); lock(false); }
     else reset();
+    setIdNote('확인됨 · 이제 분석 기간(개월 수)을 정하세요', 'ok');
+    var on = presets.querySelector('[aria-pressed="true"]') || presets.querySelector('[data-months]');
+    if (on) on.focus();
   }
+  idForm.addEventListener('submit', function (e) { e.preventDefault(); confirmId(); });
+  idIn.addEventListener('input', function () {
+    var v = idIn.value.trim().toUpperCase();
+    if (user && v !== user) setIdNote('확인 버튼을 눌러야 ' + (v || '새 ID') + '(으)로 바뀝니다', '');
+    else if (user) setIdNote('확인됨 · 이제 분석 기간(개월 수)을 정하세요', 'ok');
+    else setIdNote('먼저 상담할 고객 ID를 입력하세요', '');
+  });
 
-  picker.insertAdjacentHTML('beforeend', CONFIG.users.map(function (u, i) {
-    return '<label class="pick"><input type="radio" name="cust" value="' + esc(u.id) + '"' + (i === 0 ? ' checked' : '') + '>' +
-      '<span class="nm">' + esc(u.name) + '<small>' + esc(u.id) + '</small></span>' +
-      '<span class="rate">' + esc(u.plan) + ' · ' + won(u.fee) + '</span>' +
-      '<span class="why">' + esc(u.reason) + '</span></label>';
-  }).join(''));
-  picker.addEventListener('change', function (e) { pick(e.target.value); });
   function showUser() {
     var u = info(user);
-    $('#custName').textContent = u.name;
-    $('#custMeta').textContent = u.id + ' · ' + u.meta;
-    $('#custPlan').textContent = u.plan;
-    $('#custPrice').textContent = won(u.fee) + ' · ' + u.data;
-    $('#custSvc').textContent = u.services.length ? u.services.join(' · ') : '없음';
-    $('#custUsage').textContent = u.avgGb + 'GB (2026-04~09)';
-    $('#custMob').textContent = u.name + ' · ' + u.plan;
+    if (!user) {
+      $('#custName').textContent = '고객 ID 미입력';
+      $('#custMeta').textContent = '고객 ID를 확인하면 표시됩니다';
+      $('#custPlan').textContent = '-';
+      $('#custPrice').textContent = '';
+      $('#custSvc').textContent = '-';
+      $('#custUsage').textContent = '-';
+      $('#custMob').textContent = '고객 ID 미입력';
+    } else if (u) {
+      $('#custName').textContent = u.name;
+      $('#custMeta').textContent = u.id + ' · ' + u.meta;
+      $('#custPlan').textContent = u.plan;
+      $('#custPrice').textContent = won(u.fee) + ' · ' + u.data;
+      $('#custSvc').textContent = u.services.length ? u.services.join(' · ') : '없음';
+      $('#custUsage').textContent = u.avgGb + 'GB (2026-04~09)';
+      $('#custMob').textContent = u.name + ' · ' + u.plan;
+    } else {
+      $('#custName').textContent = user;
+      $('#custMeta').textContent = '화면에 준비된 정보가 없는 고객입니다';
+      $('#custPlan').textContent = '분석 답변에서 확인';
+      $('#custPrice').textContent = '';
+      $('#custSvc').textContent = '분석 답변에서 확인';
+      $('#custUsage').textContent = '분석 답변에서 확인';
+      $('#custMob').textContent = user;
+    }
   }
   showUser();
   // 넓은 화면에서는 고객 정보를 항상 펼치고, 좁은 화면에서는 접어 둡니다
@@ -558,7 +613,7 @@ thead th { font-weight: 700; }
   function setMonths(n) { toIn.value = today; fromIn.value = presetStart(n); syncPeriod(); }
   fromIn.min = toIn.min = CONFIG.dataStart;
   fromIn.max = toIn.max = today;
-  presets.addEventListener('click', function (e) { var b = e.target.closest('[data-months]'); if (b) setMonths(Number(b.dataset.months)); });
+  presets.addEventListener('click', function (e) { var b = e.target.closest('[data-months]'); if (b && !b.disabled) setMonths(Number(b.dataset.months)); });
   fromIn.addEventListener('input', syncPeriod);
   toIn.addEventListener('input', syncPeriod);
   setMonths(CONFIG.defaultMonths);
@@ -572,7 +627,7 @@ thead th { font-weight: 700; }
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     var t = msg.value.trim();
-    if (busy) return;
+    if (busy || !user) return;
     if (!t && marketing) t = '마케팅 메시지를 만들어줘';
     if (!t) return;
     if (!fromIn.checkValidity() || !toIn.checkValidity()) { syncPeriod(); fromIn.focus(); return; }
@@ -594,9 +649,11 @@ thead th { font-weight: 700; }
   }
   setStream(stream);
   $('#streamBtn').addEventListener('click', function () { setStream(!stream); });
-  $('#mkt').addEventListener('click', function () { setMarketing(!marketing); msg.focus(); });
+  mktBtn.addEventListener('click', function () { if (user) { setMarketing(!marketing); msg.focus(); } });
 
+  applyEnabled();
   reset();
+  idIn.focus();
 })();
 </script>
 </body>
