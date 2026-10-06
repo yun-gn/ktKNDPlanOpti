@@ -84,6 +84,22 @@ button { cursor: pointer; }
 .presets .btn { padding: 7px 12px; }
 .presets .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .period-note { font-size: 12px; color: var(--muted); padding-bottom: 9px; }
+/* 후보 고객: 예시 고객 4명. 누르면 그 ID로 바로 확인됩니다 */
+.customers { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.customers legend { padding: 0; margin-bottom: 6px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
+.pick { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+.pick input { position: absolute; opacity: 0; pointer-events: none; }
+.pick .nm { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick .nm small { font-family: var(--font-mono); font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 6px; }
+.pick .rate { font-size: 13px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick .why { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.pick:hover { border-color: var(--accent); }
+.pick:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.pick:has(input:checked) .nm { color: var(--accent); }
+.pick:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pick:has(input:disabled) { cursor: not-allowed; opacity: 0.55; }
+.pick:has(input:checked:disabled) { opacity: 1; }
+
 .brand { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
 .brand .kt { color: var(--accent); margin-right: 6px; letter-spacing: 0.02em; }
 
@@ -128,9 +144,12 @@ button { cursor: pointer; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); padding: 10px 16px; }
 .idbar .btn.primary { padding: 7px 16px; }
 .btn:disabled, .composer textarea:disabled { opacity: 0.55; cursor: not-allowed; }
-.btn.mkt { padding: 10px 12px; white-space: nowrap; }
-.btn.mkt[aria-pressed="true"] { background: var(--sunken); border-color: var(--accent); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.tag { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font-family: var(--font-body); font-size: 11px; letter-spacing: 0; }
+/* 추천 질문: 답변 아래에 붙는 다음 질문 버튼 */
+.suggest { display: flex; flex-direction: column; gap: 6px; max-width: min(640px, 92%); margin-top: 4px; }
+.suggest .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; line-height: 1.4; text-align: left; }
+.chip:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.chip:disabled { opacity: 0.55; cursor: not-allowed; }
 .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
 
 .dots { display: flex; gap: 5px; padding: 6px 0; }
@@ -167,6 +186,7 @@ thead th { font-weight: 700; }
   .cust-body { max-height: 46vh; overflow-y: auto; }
 }
 @media (max-width: 600px) {
+  .customers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .feed { padding: 14px; }
   .hint { display: none; }
 }
@@ -177,7 +197,6 @@ thead th { font-weight: 700; }
   <header class="top">
     <div class="brand"><span class="kt">KT</span>요금제 상담 AI</div>
     <div class="top-actions">
-      <button class="btn" type="button" id="streamBtn" aria-pressed="true" title="켜면 답을 생성되는 대로 보여줍니다. 끄면 다 만든 뒤 한 번에 받습니다(약 100초 넘는 답은 실패)">스트리밍</button>
       <button class="btn" type="button" id="ops" disabled title="준비 중: 운영 워크플로우(별도 Webhook)를 새 탭으로 엽니다">운영</button>
       <button class="btn" type="button" id="reset">새 대화</button>
     </div>
@@ -187,8 +206,12 @@ thead th { font-weight: 700; }
   <form class="idbar" id="idForm" autocomplete="off" novalidate aria-label="고객 ID 입력">
     <label><span class="label">고객 ID</span><input type="text" id="uid" placeholder="예: U00603" maxlength="6" inputmode="text" autocapitalize="characters" spellcheck="false" aria-describedby="idNote"></label>
     <button class="btn primary" type="submit" id="idBtn">확인</button>
-    <span class="idnote" id="idNote" role="status">먼저 상담할 고객 ID를 입력하세요</span>
+    <span class="idnote" id="idNote" role="status">고객 ID를 입력하거나 아래 후보 고객을 고르세요</span>
   </form>
+
+  <fieldset class="customers" id="customers">
+    <legend class="label">후보 고객</legend>
+  </fieldset>
 
   <!-- 2단계: 개월 수 설정 (고객 ID 확인 후 활성화) -->
   <div class="period off" id="period" role="group" aria-label="분석 기간">
@@ -241,7 +264,7 @@ thead th { font-weight: 700; }
           <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/></svg>이름 · 연락처 · 주소</li>
         </ul>
       </div>
-      <p class="sample-note">왼쪽 고객 정보는 예시 고객 4명만 2026-10-02에 조회한 값으로 표시합니다. 그 밖의 ID는 ID만 표시되며, 분석 내용은 n8n 워크플로우가 돌려준 결과입니다.</p>
+      <p class="sample-note">왼쪽 고객 정보는 후보 고객 4명만 2026-10-02에 조회한 값으로 표시합니다. 그 밖의 ID는 ID만 표시되며, 분석 내용은 n8n 워크플로우가 돌려준 결과입니다.</p>
     </div>
   </details>
 
@@ -250,7 +273,6 @@ thead th { font-weight: 700; }
     <div class="composer">
       <form id="form" autocomplete="off">
         <textarea id="msg" rows="1" placeholder="고객 ID를 확인하면 입력할 수 있습니다" aria-label="메시지 입력" disabled></textarea>
-        <button class="btn mkt" type="button" id="mkt" aria-pressed="false" title="다음 메시지 한 번만 마케팅 메시지 생성 Agent로 보냅니다" disabled>마케팅</button>
         <button class="btn primary" type="submit" id="send" disabled>전송</button>
       </form>
       <div class="hint" id="hint">Enter 전송 · Shift+Enter 줄바꿈 · 분석에 1~2분 걸릴 수 있습니다</div>
@@ -267,20 +289,28 @@ thead th { font-weight: 700; }
     chatUrl: '/api/chat',   // server.js가 n8n(CHAT_URL)으로 전달합니다. file://로 열면 동작하지 않으니 npm start로 실행하세요
     timeoutMs: 120000,       // 한 번에 받기: n8n Cloud가 약 100초에서 끊으므로 그보다 길게 기다려도 소용없습니다
     streamTimeoutMs: 600000, // 스트리밍: 마케팅 보고서는 3분 넘게 걸리기도 합니다
-    stream: true,            // 기본값. 헤더의 스트리밍 버튼으로 바꾸며, 이 브라우저에 기억됩니다
+    stream: true,            // true: 답을 생성되는 대로 보여줍니다. false: 다 만든 뒤 한 번에 받습니다(약 100초 넘는 답은 실패)
     opsUrl: '',             // 운영 워크플로우(별도 Webhook) 주소. 비어 있으면 운영 버튼이 꺼진 채로 둡니다
     idPattern: /^U\d{5}$/,   // 고객 ID 형식: U + 숫자 5자리 (예: U00603)
-    // 왼쪽 패널에 정보를 보여 줄 수 있는 예시 고객 4명입니다. 입력한 ID가 여기 없어도 n8n에는 그대로 전달됩니다
+    // 후보 고객 4명: 카드로 보여 주고 왼쪽 패널에 정보를 채웁니다. 입력한 ID가 여기 없어도 n8n에는 그대로 전달됩니다
     // 2026-10-02 ai_personalization 뷰 조회 값. 월평균은 2026-04~09 (완전한 6개월) 기준입니다
     users: [
       { id: 'U00603', name: '김수서', plan: '초이스90', fee: 90000, data: '무제한 · 5G',
-        services: ['티빙 스탠다드'], meta: '결합 없음 · KT 인터넷 없음', avgGb: 176.8 },
+        services: ['티빙 스탠다드'], meta: '결합 없음 · KT 인터넷 없음', avgGb: 176.8,
+        reason: '적정 유지 확인 · 월 176.8GB 헤비 유저, 티빙 실사용',
+        ask: '티빙을 실제로 얼마나 쓰고 있어? 지금 혜택 구성이 맞는지 봐줘' },
       { id: 'U09832', name: '윤서준', plan: '베이직21GB(이월)', fee: 58000, data: '월 21GB · LTE/5G',
-        services: [], meta: '가족 정보 없음', avgGb: 71.1 },
+        services: [], meta: '가족 정보 없음', avgGb: 71.1,
+        reason: '업셀 후보 · 제공 21GB에 월 71.1GB 사용',
+        ask: '제공량 21GB를 넘는 사용분이 주로 어떤 콘텐츠에서 나와?' },
       { id: 'U09327', name: '임서윤', plan: '초이스130', fee: 130000, data: '무제한 · 5G',
-        services: ['지니뮤직', '밀리의서재'], meta: '가족 정보 없음', avgGb: 5.2 },
+        services: ['지니뮤직', '밀리의서재'], meta: '가족 정보 없음', avgGb: 5.2,
+        reason: '다운셀 후보 · 최고가 무제한에 월 5.2GB 사용',
+        ask: '사용량에 맞는 더 저렴한 요금제 후보를 비교해줘' },
       { id: 'U00864', name: '이현서', plan: '초이스 더블', fee: 120000, data: '무제한 · 5G',
-        services: ['Disney+ 스탠다드', '단말보험 멤버십 할인'], meta: 'KT 인터넷 보유 · 결합 없음', avgGb: 163.2 }
+        services: ['Disney+ 스탠다드', '단말보험 멤버십 할인'], meta: 'KT 인터넷 보유 · 결합 없음', avgGb: 163.2,
+        reason: '결합 후보 · 인터넷 보유·미결합, Disney+ 사용 기록 없음',
+        ask: 'KT 인터넷과 결합하면 월 청구액이 얼마나 달라져?' }
     ],
     dataStart: '2025-10-24', // 조회 가능한 가장 이른 날짜
     defaultMonths: 6         // 기본 기간: 오늘로 끝나는 6개월
@@ -399,27 +429,24 @@ thead th { font-weight: 700; }
 
   /* ============ 화면 ============ */
   var $ = function (s) { return document.querySelector(s); };
-  var feed = $('#feed'), msg = $('#msg'), form = $('#form'), sendBtn = $('#send'), mktBtn = $('#mkt');
+  var feed = $('#feed'), msg = $('#msg'), form = $('#form'), sendBtn = $('#send'), picker = $('#customers');
   var idForm = $('#idForm'), idIn = $('#uid'), idBtn = $('#idBtn'), idNote = $('#idNote');
   var fromIn = $('#from'), toIn = $('#to'), presets = $('#presets'), periodBox = $('#period'), periodNote = $('#periodNote');
   var busy = false, curCtrl = null;
   // user가 null이면 아직 고객 ID를 확인하기 전입니다. 고객마다 대화(n8n 메모리 세션)를 따로 둡니다
   var user = null, convs = {};
-  var stream = CONFIG.stream;
-  try { var saved0 = localStorage.getItem('kt-chat-stream'); if (saved0 !== null) stream = saved0 === '1'; } catch (e) { /* 저장소를 못 쓰면 기본값 */ }
-  var marketing = false;   // 다음 메시지 한 번만 마케팅 Agent로 보냅니다. 보내면 다시 꺼집니다
   function info(id) { return CONFIG.users.filter(function (u) { return u.id === id; })[0] || null; }
   function won(n) { return '월 ' + Number(n).toLocaleString('ko-KR') + '원'; }
   var DOTS = '<div class="dots" aria-label="응답 생성 중"><i></i><i></i><i></i></div>';
 
   function newId() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'sess-' + Date.now().toString(36) + Math.random().toString(36).slice(2); }
   function add(html) { feed.insertAdjacentHTML('beforeend', html); return feed.lastElementChild; }
-  function userRow(t, mk) { return '<div class="row user"><div class="who">직원' + (mk ? '<span class="tag">마케팅 메시지</span>' : '') + '</div><div class="bubble">' + esc(t) + '</div></div>'; }
+  function userRow(t) { return '<div class="row user"><div class="who">직원</div><div class="bubble">' + esc(t) + '</div></div>'; }
   function aiRow(inner) { return '<div class="row ai"><div class="who">AI</div><div class="bubble">' + inner + '</div></div>'; }
   function aiText(t) { return '<div class="md">' + (t.trim() ? md(t) : '<p>응답이 비어 있습니다. n8n의 Executions 탭에서 실행 기록을 확인해 보세요.</p>') + '</div>'; }
   function errorText(e, ms) {
     if (e && e.name === 'AbortError') return '응답이 ' + Math.round(ms / 1000) + '초 안에 오지 않아 중단했습니다. n8n의 Executions 탭에서 실행이 끝났는지 확인하세요.';
-    if (e && e.message === 'HTTP 524') return 'n8n Cloud가 약 100초 안에 답을 받지 못해 연결을 끊었습니다. 오래 걸리는 질문은 스트리밍을 켜고 보내세요.';
+    if (e && e.message === 'HTTP 524') return 'n8n Cloud가 약 100초 안에 답을 받지 못해 연결을 끊었습니다. 질문을 나눠서 다시 보내 보세요.';
     if (e && /^HTTP/.test(e.message || '')) return 'n8n이 오류(' + esc(e.message) + ')를 돌려줬습니다. Executions 탭에서 어느 노드에서 멈췄는지 확인하세요.';
     if (e && e.n8n) return /429|quota/i.test(e.n8n) ? 'AI 모델(Gemini) 사용 한도를 넘었습니다. 잠시 후 다시 시도하거나 API 키 한도를 확인하세요.'
       : 'n8n 실행 중 오류가 났습니다: ' + esc(e.n8n.slice(0, 300));
@@ -431,8 +458,10 @@ thead th { font-weight: 700; }
   function applyEnabled() {
     var ready = !!user;
     msg.disabled = busy || !ready;
+    feed.querySelectorAll('.chip').forEach(function (c) { c.disabled = busy; });
     sendBtn.disabled = busy || !ready;
-    mktBtn.disabled = !ready;
+    picker.disabled = busy;
+    picker.querySelectorAll('input').forEach(function (r) { r.checked = r.value === user; });
     idIn.disabled = busy;
     idBtn.disabled = busy;
     fromIn.disabled = !ready;
@@ -444,22 +473,16 @@ thead th { font-weight: 700; }
   function lock(b) { busy = b; applyEnabled(); if (!b && user) msg.focus(); }
   function fit() { msg.style.height = 'auto'; msg.style.height = Math.min(msg.scrollHeight, 160) + 'px'; }
 
-  function setMarketing(b) {
-    marketing = b;
-    mktBtn.setAttribute('aria-pressed', b ? 'true' : 'false');
-    $('#hint').textContent = b ? '다음 메시지 한 번만 마케팅 메시지 생성 Agent로 보냅니다 · 비워 두고 전송해도 됩니다'
-      : 'Enter 전송 · Shift+Enter 줄바꿈 · 분석에 1~2분 걸릴 수 있습니다';
-  }
-
-  async function send(text, mk) {
+  // intent: 'review'면 n8n이 저장된 분석이 있어도 새로 분석합니다. 비워 두면 같은 상담·기간의 분석이 있을 때 후속 질문으로 답합니다
+  async function send(text, intent) {
+    feed.querySelectorAll('.suggest').forEach(function (el) { el.remove(); });   // 지난 추천 질문은 새 질문을 보내면 지웁니다
     lock(true);
-    setMarketing(false);
     msg.value = ''; fit();
-    add(userRow(text, mk));
+    add(userRow(text));
     var row = add(aiRow(DOTS)); scrollDown();
     var bubble = row.querySelector('.bubble');
     var ctrl = new AbortController(); curCtrl = ctrl;
-    var streaming = stream, ms = streaming ? CONFIG.streamTimeoutMs : CONFIG.timeoutMs;
+    var streaming = CONFIG.stream, ms = streaming ? CONFIG.streamTimeoutMs : CONFIG.timeoutMs;
     var timer = setTimeout(function () { ctrl.abort(); }, ms);
     try {
       var res = await fetch(CONFIG.chatUrl + (streaming ? '?stream=1' : ''), {
@@ -467,7 +490,7 @@ thead th { font-weight: 700; }
         headers: { 'Content-Type': 'application/json' },
         // chatInput은 Chat Trigger용, userMessage는 Webhook 트리거용 필드입니다 (같은 값). n8n에서는 $json.userId로 읽습니다
         body: JSON.stringify({ action: 'sendMessage', sessionId: convs[user], chatInput: text, userMessage: text,
-          userId: user, startDate: fromIn.value, endDate: toIn.value, marketing: mk }),
+          userId: user, startDate: fromIn.value, endDate: toIn.value, intent: intent || '' }),
         signal: ctrl.signal
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -478,7 +501,7 @@ thead th { font-weight: 700; }
           queued = false;
           if (curCtrl !== ctrl) return;
           var near = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 80;
-          var t = st.text();
+          var t = splitSuggest(st.text()).body;   // 덜 온 추천 질문 블록은 감춥니다
           bubble.innerHTML = t ? '<div class="md">' + md(t) + '</div>'
             : '<p class="status">데이터를 조회하고 있습니다' + (st.steps > 1 ? ' · ' + st.steps + '단계' : '') + '</p>' + DOTS;
           if (near) scrollDown();
@@ -496,7 +519,9 @@ thead th { font-weight: 700; }
         reply = replyText(await res.text());
       }
       if (curCtrl !== ctrl) return;
-      bubble.innerHTML = aiText(reply);
+      var sp = splitSuggest(reply);
+      bubble.innerHTML = aiText(sp.body);
+      if (sp.body.trim()) row.insertAdjacentHTML('beforeend', chips(sp.list.length ? sp.list : suggest(sp.body)));
     } catch (e) {
       if (curCtrl !== ctrl) return;
       bubble.classList.add('err');
@@ -508,10 +533,82 @@ thead th { font-weight: 700; }
     row.scrollIntoView({ block: 'start' });
   }
 
+  /* ---------- 추천 질문 ----------
+     답변에서 근거 값(요금제·혜택·최대 사용량·선택지·주의점)을 뽑아, 개인화 조회 카탈로그(PERS_xxx)로
+     답할 수 있는 다음 질문을 만듭니다. n8n이 ```suggestions 블록(한 줄에 질문 하나)을 보내면 그것을 우선합니다. */
+  var MAX_SUGGEST = 5;
+  function splitSuggest(t) {
+    t = String(t || '');
+    var m = t.match(/```suggestions[^\n]*\n([\s\S]*?)(```|$)/);
+    if (!m) return { body: t, list: [] };
+    var list = m[2] ? m[1].split('\n').map(function (l) { return l.replace(/^\s*(?:[-*]|\d+[.)])\s*/, '').trim(); })
+      .filter(Boolean).slice(0, MAX_SUGGEST).map(function (q) { return { text: q }; }) : [];
+    return { body: t.replace(m[0], '').trim(), list: list };
+  }
+  function suggest(reply) {
+    // 마크다운 표(|)와 복사해 붙인 표(탭)를 같은 모양으로 맞춥니다
+    var t = String(reply).replace(/\*\*|`/g, '').replace(/[ \t]*\|[ \t]*/g, '\t'), out = [], m;
+    function q(text, ref) { if (!out.some(function (o) { return o.text === text; })) out.push({ text: text, ref: ref }); }
+    var benefit = (m = t.match(/현재 혜택\s+([^\n\t]+)/)) && !/없음|^-$/.test(m[1].trim()) ? m[1].trim() : '';
+    var have = benefit ? benefit.split(/[,·]\s*/).map(function (x) { return x.trim().toLowerCase(); }) : [];
+    var options = [];   // 바꾸는 선택지: { name, svcs, line }
+    t.split('\n').forEach(function (ln) {
+      var o = ln.trim().match(/^([^\t\[]+?)\s*\[([^\]]*)\]/);
+      if (o && /요금제 변경/.test(ln)) options.push({ name: o[1].trim(), svcs: /혜택 없음/.test(o[2]) ? [] : o[2].split(/,\s*/), line: ln });
+    });
+
+    // 1. 결과끼리 어긋나면 그 이유부터 묻습니다 (참고 최적화 결과는 싸다는데 표에서는 더 비싼 경우)
+    if ((m = t.match(/최적화 결과:\s*([^:\n]+?):[^\n]*?difference\s*₩?([\d,]+)/i))) {
+      var name = m[1].trim(), diff = m[2];
+      var opt = options.filter(function (o) { return o.name === name; })[0];
+      var more = opt && opt.line.match(/\+[\d,]+원/);
+      if (more) q('참고 결과(' + opt.name + ', 월 ' + diff + '원 절감)와 선택지 표(' + more[0] + ')가 다른 이유를 설명해줘', '답변 내 계산');
+    }
+    // 2. 지금 받는 혜택을 실제로 쓰는지
+    if (benefit) q(benefit + ' 실제 사용량이 월별로 얼마나 돼? 혜택을 유지할 만큼 쓰고 있어?', 'PERS_006');
+    // 3. 최대 사용량이 나온 달 파고들기
+    if ((m = t.match(/최대 사용량[^\n]*?\/\s*([\d.,]+)\s*GB/))) q('사용량이 가장 많았던 달(최대 ' + m[1] + 'GB)에는 어떤 콘텐츠를 많이 썼어?', 'PERS_001 → PERS_005');
+    // 4. 다른 선택지가 새로 주는 혜택이 이 고객에게 쓸모 있는지
+    options.forEach(function (o) {
+      o.svcs.forEach(function (sv) {
+        if (have.indexOf(sv.trim().toLowerCase()) < 0) q(o.name + '에 들어 있는 ' + sv.trim() + ', 이 고객이 실제로 쓸 만한지 사용 성향으로 판단해줘', 'PERS_014 · PERS_004');
+      });
+    });
+    // 5. 분석에서 뺀 이번 달 추세
+    if ((m = t.match(/분석 제외 월\s+(\d{4})-(\d{2})\s*\((\d+)일,\s*([\d.,]+)\s*GB/)))
+      q(Number(m[2]) + '월 ' + m[3] + '일 동안 ' + m[4] + 'GB를 썼는데, 최근 7·30일 추세가 평소와 비교해 어때?', 'PERS_002 · PERS_012');
+    // 6. 계산에서 빠진 할인·결합
+    if (/가족결합 할인은 포함되지/.test(t)) q('가족결합이나 KT 인터넷 결합을 하면 선택지별 청구액이 어떻게 달라져?', 'PERS_011 · PERS_010');
+    // 7. 현재 유지가 답일 때, 언제 바꾸는 게 나아지는지
+    var cheapest = options.filter(function (o) { return /최저 월정액/.test(o.line); })[0];
+    if (cheapest && /현재[^\n]*최저 청구/.test(t)) q('사용량이나 구독이 어떻게 바뀌면 ' + cheapest.name + ' 쪽이 더 유리해져?', '답변 내 계산');
+    // 요금제 검토 형식이 아닌 답변이면 고객 단위 기본 질문을 드립니다
+    if (!out.length) {
+      q('이 고객의 요금제가 적정한지 검토해줘', 'PERS_012 · PERS_013');
+      q('최근 7일·30일 사용량을 6개월 평균과 비교해줘', 'PERS_012 · PERS_001');
+      q('현재 할인과 결합 상태를 정리해줘', 'PERS_010 · PERS_011');
+    }
+    return out.slice(0, MAX_SUGGEST);
+  }
+  function chips(list) {
+    if (!list.length) return '';
+    return '<div class="suggest"><span class="label">추천 질문</span><div class="chips">' + list.map(function (s) {
+      return '<button class="chip" type="button" data-q="' + esc(s.text) + '"' + (s.intent ? ' data-intent="' + esc(s.intent) + '"' : '') + (s.ref ?' title="근거 조회: ' + esc(s.ref) + '"' : '') + '>' + esc(s.text) + '</button>';
+    }).join('') + '</div></div>';
+  }
+  // 고객을 고른 직후의 시작 질문: 공통 질문 + 후보 고객별 질문
+  function starters(u) {
+    var list = [{ text: '이 고객의 요금제가 적정한지 검토해줘', ref: 'PERS_012 · PERS_013', intent: 'review' }];
+    if (u && u.ask) list.push({ text: u.ask });
+    list.push({ text: '최근 7일·30일 사용량을 6개월 평균과 비교해줘', ref: 'PERS_012 · PERS_001' });
+    if (!u) list.push({ text: '현재 할인과 결합 상태를 정리해줘', ref: 'PERS_010 · PERS_011' });
+    return list;
+  }
+
   /* ---------- 고객 ID 입력 ---------- */
   var saved = {};   // 고객별 화면 내용
   function guide() {
-    return '**1.** 위에 고객 ID를 입력하고 **확인**을 누르세요. (예: `U00603`)\n\n**2.** 분석할 기간(1·3·6·12개월 또는 날짜)을 정하세요.\n\n**3.** 질문을 입력하면 분석이 시작됩니다.';
+    return '**1.** 위에 고객 ID를 입력하고 **확인**을 누르거나, 후보 고객 카드를 고르세요. (예: `U00603`)\n\n**2.** 분석할 기간(1·3·6·12개월 또는 날짜)을 정하세요.\n\n**3.** 질문을 입력하면 분석이 시작됩니다.';
   }
   function reset() {
     if (curCtrl) { curCtrl.abort(); curCtrl = null; }
@@ -521,7 +618,8 @@ thead th { font-weight: 700; }
     } else {
       convs[user] = newId();
       var u = info(user);
-      add(aiRow(aiText('**' + (u ? u.name + '** (' + user + ')' : user + '**') + ' 고객을 선택했습니다. 분석 기간을 확인한 뒤 무엇을 분석할지 입력하세요.')));
+      var row = add(aiRow(aiText('**' + (u ? u.name + '** (' + user + ')' : user + '**') + ' 고객을 선택했습니다. 분석 기간을 확인한 뒤 무엇을 분석할지 입력하거나 아래 질문을 고르세요.')));
+      row.insertAdjacentHTML('beforeend', chips(starters(u)));
     }
     lock(false);
   }
@@ -552,8 +650,17 @@ thead th { font-weight: 700; }
     var v = idIn.value.trim().toUpperCase();
     if (user && v !== user) setIdNote('확인 버튼을 눌러야 ' + (v || '새 ID') + '(으)로 바뀝니다', '');
     else if (user) setIdNote('확인됨 · 이제 분석 기간(개월 수)을 정하세요', 'ok');
-    else setIdNote('먼저 상담할 고객 ID를 입력하세요', '');
+    else setIdNote('고객 ID를 입력하거나 아래 후보 고객을 고르세요', '');
   });
+
+  picker.insertAdjacentHTML('beforeend', CONFIG.users.map(function (u) {
+    return '<label class="pick"><input type="radio" name="cust" value="' + esc(u.id) + '">' +
+      '<span class="nm">' + esc(u.name) + '<small>' + esc(u.id) + '</small></span>' +
+      '<span class="rate">' + esc(u.plan) + ' · ' + won(u.fee) + '</span>' +
+      '<span class="why">' + esc(u.reason) + '</span></label>';
+  }).join(''));
+  // 카드를 고르면 ID 칸을 채우고 바로 확인합니다
+  picker.addEventListener('change', function (e) { idIn.value = e.target.value; confirmId(); });
 
   function showUser() {
     var u = info(user);
@@ -624,15 +731,14 @@ thead th { font-weight: 700; }
     ops.addEventListener('click', function () { window.open(CONFIG.opsUrl, '_blank', 'noopener'); });
   }
 
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var t = msg.value.trim();
-    if (busy || !user) return;
-    if (!t && marketing) t = '마케팅 메시지를 만들어줘';
-    if (!t) return;
+  function ask(t, intent) {
+    if (busy || !user || !t) return;
     if (!fromIn.checkValidity() || !toIn.checkValidity()) { syncPeriod(); fromIn.focus(); return; }
-    send(t, marketing);
-  });
+    send(t, intent);
+  }
+  form.addEventListener('submit', function (e) { e.preventDefault(); ask(msg.value.trim()); });
+  // 추천 질문 버튼 (저장했다 복원한 대화에서도 동작하도록 feed에서 받습니다)
+  feed.addEventListener('click', function (e) { var c = e.target.closest('.chip'); if (c) ask(c.dataset.q, c.dataset.intent); });
   msg.addEventListener('keydown', function (e) {
     // 한글 조합 중 Enter는 무시해야 마지막 글자가 두 번 전송되지 않습니다
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
@@ -642,14 +748,6 @@ thead th { font-weight: 700; }
   });
   msg.addEventListener('input', fit);
   $('#reset').addEventListener('click', reset);
-  function setStream(b) {
-    stream = b;
-    $('#streamBtn').setAttribute('aria-pressed', b ? 'true' : 'false');
-    try { localStorage.setItem('kt-chat-stream', b ? '1' : '0'); } catch (e) { /* 무시 */ }
-  }
-  setStream(stream);
-  $('#streamBtn').addEventListener('click', function () { setStream(!stream); });
-  mktBtn.addEventListener('click', function () { if (user) { setMarketing(!marketing); msg.focus(); } });
 
   applyEnabled();
   reset();
