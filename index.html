@@ -8,7 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-/* 단순 채팅 화면: n8n 응답은 왼쪽, 직원 입력은 오른쪽. */
+/* 상담 화면: 왼쪽 사전 고객 정보 · 가운데 검토 보고서(+ 가정 바꿔 보기) · 오른쪽 후속 질문 채팅.
+   한 대화 = 한 분석. 기간을 바꾸거나 다시 분석하려면 새 대화를 시작합니다. */
 :root {
   color-scheme: light;
   --bg: #F1F2F4;
@@ -18,152 +19,251 @@
   --muted: #5B6270;
   --line: #DDE0E6;
   --accent: #E4002B;
+  --accent-soft: #FCE7EB;
   --on-accent: #FFFFFF;
   --user-bg: #1A1D24;
   --user-fg: #F4F5F7;
   --bad: #B3261E;
+  --up: #A65A00;
   --down: #0C7A55;
+  --series-1: #2a78d6;
+  --series-1-soft: #cde2fb;
   --font-body: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0F1115; --surface: #181B21; --sunken: #1E222A; --ink: #ECEEF2; --muted: #98A0AE; --line: #2A2F39;
-    --accent: #FF5470; --on-accent: #1A0409; --user-bg: #2B303B; --user-fg: #ECEEF2; --bad: #FF8A80; --down: #4FD3A2;
+    --accent: #FF5470; --accent-soft: #3A1A22; --on-accent: #1A0409; --user-bg: #2B303B; --user-fg: #ECEEF2;
+    --bad: #FF8A80; --up: #F2B45E; --down: #4FD3A2; --series-1: #3987e5; --series-1-soft: #1c3a5e;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0F1115; --surface: #181B21; --sunken: #1E222A; --ink: #ECEEF2; --muted: #98A0AE; --line: #2A2F39;
-  --accent: #FF5470; --on-accent: #1A0409; --user-bg: #2B303B; --user-fg: #ECEEF2; --bad: #FF8A80; --down: #4FD3A2;
+  --accent: #FF5470; --accent-soft: #3A1A22; --on-accent: #1A0409; --user-bg: #2B303B; --user-fg: #ECEEF2;
+  --bad: #FF8A80; --up: #F2B45E; --down: #4FD3A2; --series-1: #3987e5; --series-1-soft: #1c3a5e;
   color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.55;
-  padding: 12px 16px;
-}
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
 button, textarea, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-.app { height: 100%; max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
-
-.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.top-actions { display: flex; gap: 8px; }
-.top-actions .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
-.status { font-size: 13px; color: var(--muted); }
+[hidden] { display: none !important; }
 .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
 
-/* 1단계: 고객 ID 입력 */
-.idbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
-.idbar label { display: flex; flex-direction: column; gap: 4px; }
-.idbar input { width: 190px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; font-size: 14px; font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
-.idbar input::placeholder { text-transform: none; letter-spacing: 0; font-family: var(--font-body); color: var(--muted); }
-.idbar input[aria-invalid="true"] { border-color: var(--bad); }
-.idbar .btn { padding: 7px 14px; }
-.idnote { font-size: 12px; color: var(--muted); padding-bottom: 9px; }
-.idnote.bad { color: var(--bad); }
-.idnote.ok { color: var(--down); }
+/* ---------- 틀: 화면 전체를 씁니다 ---------- */
+.app { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.brand { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.brand .kt { color: var(--accent); margin-right: 6px; letter-spacing: 0.02em; }
+.top-actions { display: flex; gap: 8px; align-items: center; }
+.top .viewswitch { display: none; }
 
-/* 2단계: 분석 기간 */
-.period { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; transition: opacity 0.15s; }
-.period.off { opacity: 0.5; }
-.period label { display: flex; flex-direction: column; gap: 4px; }
-.period input { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 14px; color: inherit; font-variant-numeric: tabular-nums; }
-.period input:invalid { border-color: var(--bad); }
-.period input:disabled, .idbar input:disabled { cursor: not-allowed; }
-.period .tilde { padding-bottom: 8px; color: var(--muted); }
-.presets { display: flex; gap: 6px; flex-wrap: wrap; }
-.presets .btn { padding: 7px 12px; }
-.presets .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
-.period-note { font-size: 12px; color: var(--muted); padding-bottom: 9px; }
-/* 후보 고객: 예시 고객 4명. 누르면 그 ID로 바로 확인됩니다 */
-.customers { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.customers legend { padding: 0; margin-bottom: 6px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
-.pick { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+.work { min-height: 0; display: grid; grid-template-columns: 272px minmax(0, 1fr) 380px; }
+.side, .report, .chat { min-height: 0; min-width: 0; }
+.side { overflow-y: auto; background: var(--surface); border-right: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+.report { overflow-y: auto; padding: 20px 24px 32px; }
+.chat { background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 14px; font-size: 14px; font-weight: 500; }
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn.sm { padding: 4px 10px; font-size: 13px; }
+
+/* ---------- 왼쪽: 고객 선택 · 기간 · 사전 정보 ---------- */
+.blk { display: flex; flex-direction: column; gap: 8px; }
+.idrow { display: flex; gap: 6px; }
+.idrow input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--sunken); border-radius: 8px; padding: 7px 10px; font-size: 14px; font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.idrow input::placeholder { text-transform: none; letter-spacing: 0; font-family: var(--font-body); color: var(--muted); }
+.idrow input[aria-invalid="true"] { border-color: var(--bad); }
+.note { font-size: 12px; color: var(--muted); line-height: 1.45; }
+.note.bad { color: var(--bad); }
+.note.ok { color: var(--down); }
+
+.cands summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+.cands summary::-webkit-details-marker { display: none; }
+.cands summary::after { content: '▾'; color: var(--muted); font-size: 12px; }
+.cands[open] summary::after { content: '▴'; }
+.customers { border: 0; margin: 8px 0 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pick { position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; background: var(--sunken); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; cursor: pointer; }
 .pick input { position: absolute; opacity: 0; pointer-events: none; }
-.pick .nm { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick .nm { font-weight: 700; font-size: 13px; }
 .pick .nm small { font-family: var(--font-mono); font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 6px; }
-.pick .rate { font-size: 13px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pick .why { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.pick .rate { font-size: 12px; font-variant-numeric: tabular-nums; }
+.pick .why { font-size: 12px; color: var(--muted); line-height: 1.35; }
 .pick:hover { border-color: var(--accent); }
-.pick:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.pick:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--surface); }
 .pick:has(input:checked) .nm { color: var(--accent); }
 .pick:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pick:has(input:disabled) { cursor: not-allowed; opacity: 0.55; }
 .pick:has(input:checked:disabled) { opacity: 1; }
 
-.brand { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
-.brand .kt { color: var(--accent); margin-right: 6px; letter-spacing: 0.02em; }
+.period { display: flex; flex-direction: column; gap: 8px; }
+.dates { display: grid; grid-template-columns: 1fr; gap: 4px; }
+.dates input { width: 100%; min-width: 0; border: 1px solid var(--line); background: var(--sunken); border-radius: 8px; padding: 6px 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.dates input:invalid { border-color: var(--bad); }
+.dates input:disabled { cursor: not-allowed; opacity: 0.6; }
+.presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.presets .btn { padding: 5px 0; font-size: 13px; }
+.presets .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 
-/* 본문: 왼쪽 고객 정보, 오른쪽 채팅 */
-.work { flex: 1; min-height: 0; display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 12px; }
-.cust { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-y: auto; min-width: 0; }
-.cust summary { list-style: none; cursor: default; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.cust summary::-webkit-details-marker { display: none; }
-.cust .s-mob { display: none; }
-.cust-body { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
-.consent { font-size: 13px; color: var(--muted); margin: 0; }
-.who-name { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.base { border-top: 1px solid var(--line); padding-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.who-name { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
 .who-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
-.field-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-.plan-name { font-weight: 700; }
-.plan-price { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.scope { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font-size: 14px; }
-.scope li { display: flex; align-items: center; gap: 8px; }
-.scope svg { flex: 0 0 auto; }
-.scope.excluded { color: var(--muted); }
-.sample-note { font-size: 12px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; margin: 0; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; margin: 0; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.scope { font-size: 12px; color: var(--muted); }
+.scope summary { cursor: pointer; }
+.scope ul { margin: 6px 0 0; padding-left: 18px; }
 
-.chat { min-height: 0; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; }
-.feed { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+/* ---------- 가운데: 검토 보고서 ---------- */
+.empty { max-width: 560px; margin: 8vh auto 0; text-align: center; color: var(--muted); display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.empty h2 { margin: 0; font-size: 18px; color: var(--ink); }
+.empty p { margin: 0; }
+.loading { display: flex; flex-direction: column; gap: 12px; }
+.sk { background: var(--sunken); border-radius: 8px; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) { .sk, .dots i { animation: none !important; } }
 
+.rhead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; margin-bottom: 14px; }
+.rhead h2 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+.rhead .meta { font-size: 13px; color: var(--muted); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.kpi .v { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.kpi .s { font-size: 13px; color: var(--muted); }
+.kpi.hl { border-color: var(--accent); }
+
+.notices { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
+.notices .nh { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 500; }
+.notices .md { margin-top: 6px; }
+.notices.clamp .md > ul > li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.notices.clamp .md li ul { display: none; }
+
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 14px; overflow-x: auto; }
+.tab { border: 0; background: none; padding: 8px 14px; font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 700; }
+
+/* 가정 바꿔 보기 */
+.whatif { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+.wi { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 5px 12px; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.seg button:disabled { opacity: 0.5; cursor: not-allowed; }
+.checks { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; }
+.checks label { display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; }
+.checks input { accent-color: var(--accent); }
+.lock { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 4px 9px; border: 1px dashed var(--line); border-radius: 999px; color: var(--muted); }
+.wi-foot { flex-basis: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+.wi-foot .changed { color: var(--up); font-weight: 500; }
+.wi-off { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+
+/* 선택지 표 */
+.otable-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.otable { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.otable th, .otable td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: right; white-space: nowrap; }
+.otable th { font-size: 12px; font-weight: 500; color: var(--muted); background: var(--sunken); position: sticky; top: 0; }
+.otable th:first-child, .otable td:first-child { text-align: left; white-space: normal; min-width: 210px; }
+.otable tr.cur td { background: var(--sunken); }
+.otable tr.opt { cursor: pointer; }
+.otable tr.opt:hover td { background: color-mix(in srgb, var(--sunken) 60%, transparent); }
+.otable tr.detail td { background: var(--sunken); text-align: left; white-space: normal; font-size: 13px; }
+.otable .final { font-weight: 700; }
+.oname { display: flex; flex-direction: column; gap: 3px; }
+.oname .pl { font-weight: 700; }
+.oname .bn { font-size: 12px; color: var(--muted); }
+.oname button { all: unset; cursor: pointer; }
+.oname button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.tag.best { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.tag.warn { border-color: var(--up); color: var(--up); }
+.d-neg { color: var(--down); }
+.d-pos { color: var(--bad); }
+.dgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 20px; }
+.dgrid ul { margin: 2px 0 0; padding-left: 18px; }
+.foot { font-size: 12px; color: var(--muted); margin-top: 10px; }
+.foot summary { cursor: pointer; }
+.foot .md { margin-top: 6px; }
+
+/* 사용량 */
+.ugrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.card h3 { margin: 0 0 2px; font-size: 15px; }
+.card .sub { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.card.wide { grid-column: 1 / -1; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .ax { fill: var(--muted); font-size: 11px; font-family: var(--font-body); }
+.chart .bar { fill: var(--series-1); }
+.chart .bar:hover, .chart .bar.on { fill: color-mix(in srgb, var(--series-1) 75%, var(--ink)); }
+.chart .avg { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.chart .val { fill: var(--ink); font-size: 12px; font-weight: 500; font-family: var(--font-body); }
+.stable { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.stable th, .stable td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: middle; white-space: nowrap; }
+.stable th { font-size: 12px; font-weight: 500; color: var(--muted); }
+.stable th:first-child, .stable td:first-child, .stable td.l, .stable th.l { text-align: left; }
+.stable td.wrap { white-space: normal; }
+.spark { width: 120px; height: 28px; display: block; margin-left: auto; }
+.spark polyline { fill: none; stroke: var(--series-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.spark circle { fill: var(--series-1); }
+.spark .zero { stroke: var(--muted); stroke-dasharray: 3 3; }
+.st { font-size: 12px; }
+.st.warn { color: var(--up); font-weight: 500; }
+.hbars { display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
+.hb { display: grid; grid-template-columns: 70px 1fr auto; gap: 10px; align-items: center; }
+.hb .track { height: 10px; background: var(--sunken); border-radius: 0 4px 4px 0; }
+.hb .fill { height: 100%; background: var(--series-1); border-radius: 0 4px 4px 0; }
+.hb .v { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+.fallback { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+
+/* ---------- 오른쪽: 채팅 ---------- */
+.chat-head { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.chat-head .sid { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.feed { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
 .row { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .row.user { align-items: flex-end; }
 .row.ai { align-items: flex-start; }
 .who { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; color: var(--muted); }
-.bubble { padding: 10px 14px; max-width: min(640px, 92%); min-width: 0; overflow-wrap: anywhere; }
+.bubble { padding: 9px 12px; max-width: 94%; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
 .user .bubble { background: var(--user-bg); color: var(--user-fg); border-radius: 14px 14px 4px 14px; white-space: pre-wrap; }
 .ai .bubble { background: var(--sunken); border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; }
 .ai .bubble.err { border-color: var(--bad); }
+.ai .bubble.done { border-color: var(--accent); }
 .err-title { color: var(--bad); font-weight: 700; margin: 0 0 4px; }
-
-.composer { border-top: 1px solid var(--line); padding: 10px 14px 14px; }
+.composer { border-top: 1px solid var(--line); padding: 10px 12px 12px; }
 .composer form { display: flex; gap: 8px; align-items: flex-end; }
-.composer textarea { flex: 1; min-width: 0; resize: none; max-height: 160px; border: 1px solid var(--line); background: var(--sunken); border-radius: 8px; padding: 10px 12px; line-height: 1.45; }
+.composer textarea { flex: 1; min-width: 0; resize: none; max-height: 160px; border: 1px solid var(--line); background: var(--sunken); border-radius: 8px; padding: 9px 11px; line-height: 1.45; }
 .composer textarea::placeholder { color: var(--muted); }
-.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 14px; font-size: 14px; font-weight: 500; }
-.btn:hover:not(:disabled) { border-color: var(--accent); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); padding: 10px 16px; }
-.idbar .btn.primary { padding: 7px 16px; }
-.btn:disabled, .composer textarea:disabled { opacity: 0.55; cursor: not-allowed; }
-/* 추천 질문: 답변 아래에 붙는 다음 질문 버튼 */
-.suggest { display: flex; flex-direction: column; gap: 6px; max-width: min(640px, 92%); margin-top: 4px; }
+.composer textarea:disabled { opacity: 0.55; cursor: not-allowed; }
+.hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.suggest { display: flex; flex-direction: column; gap: 6px; max-width: 94%; margin-top: 4px; }
 .suggest .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; line-height: 1.4; text-align: left; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: 13px; line-height: 1.4; text-align: left; }
 .chip:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .chip:disabled { opacity: 0.55; cursor: not-allowed; }
-.hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
-
 .dots { display: flex; gap: 5px; padding: 6px 0; }
 .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.1s ease-in-out infinite; }
 .dots i:nth-child(2) { animation-delay: 0.15s; }
 .dots i:nth-child(3) { animation-delay: 0.3s; }
 @keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: 0.6; } }
 
-/* 마크다운 응답 */
+/* 마크다운 */
 .md { display: flex; flex-direction: column; gap: 8px; }
 .md p { margin: 0; }
 .md h4 { margin: 6px 0 0; font-size: 15px; }
-.md ul, .md ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 2px; }
+.md ul, .md ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
 .md blockquote { margin: 0; padding: 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--muted); }
 .md code { font-family: var(--font-mono); font-size: 13px; background: var(--surface); padding: 0 4px; border-radius: 4px; }
 .md li > ul { margin-top: 2px; }
@@ -171,23 +271,30 @@ button { cursor: pointer; }
 .md pre.code { margin: 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; }
 .md img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
 .table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
-th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
-thead th { font-weight: 700; }
+.md table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.md th, .md td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.md thead th { font-weight: 700; }
 
-@media (max-width: 860px) {
+.tip { position: fixed; z-index: 50; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 12px; padding: 5px 8px; border-radius: 6px; max-width: 260px; white-space: pre-line; font-variant-numeric: tabular-nums; }
+
+/* ---------- 좁은 화면: 왼쪽은 위로 접고, 보고서와 대화를 버튼으로 오갑니다 ---------- */
+@media (max-width: 1280px) {
+  .work { grid-template-columns: 248px minmax(0, 1fr) 360px; }
+  .report { padding: 16px 18px 28px; }
+}
+@media (max-width: 1080px) {
+  .top .viewswitch { display: inline-flex; }
   .work { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .cust { padding: 10px 14px; overflow: visible; }
-  .cust summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: 13px; color: var(--ink); }
-  .cust summary::after { content: '▾'; color: var(--muted); }
-  .cust[open] summary::after { content: '▴'; }
-  .cust .s-desk { display: none; }
-  .cust .s-mob { display: inline; }
-  .cust-body { max-height: 46vh; overflow-y: auto; }
+  .side { border-right: 0; border-bottom: 1px solid var(--line); max-height: 34vh; padding: 12px 16px; }
+  .work[data-view="report"] .chat { display: none; }
+  .work[data-view="chat"] .report { display: none; }
+  .chat { border-left: 0; }
 }
 @media (max-width: 600px) {
-  .customers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .feed { padding: 14px; }
+  .top { padding: 8px 12px; }
+  .brand { font-size: 15px; }
+  .report { padding: 12px; }
+  .ugrid { grid-template-columns: minmax(0, 1fr); }
   .hint { display: none; }
 }
 </style>
@@ -197,89 +304,84 @@ thead th { font-weight: 700; }
   <header class="top">
     <div class="brand"><span class="kt">KT</span>요금제 상담 AI</div>
     <div class="top-actions">
+      <div class="seg viewswitch" role="group" aria-label="보기 전환">
+        <button type="button" data-view="report" aria-pressed="true">보고서</button>
+        <button type="button" data-view="chat" aria-pressed="false">대화</button>
+      </div>
       <button class="btn" type="button" id="ops" disabled title="운영 대시보드로 이동합니다. 대시보드의 상담 버튼으로 돌아옵니다">운영</button>
-      <button class="btn" type="button" id="reset">새 대화</button>
+      <button class="btn" type="button" id="reset" title="이 고객의 새 상담을 시작합니다. 분석 기간을 다시 정할 수 있습니다">새 대화</button>
     </div>
   </header>
 
-  <!-- 1단계: 고객 ID 입력 -->
-  <form class="idbar" id="idForm" autocomplete="off" novalidate aria-label="고객 ID 입력">
-    <label><span class="label">고객 ID</span><input type="text" id="uid" placeholder="예: U00603" maxlength="6" inputmode="text" autocapitalize="characters" spellcheck="false" aria-describedby="idNote"></label>
-    <button class="btn primary" type="submit" id="idBtn">확인</button>
-    <span class="idnote" id="idNote" role="status">고객 ID를 입력하거나 아래 후보 고객을 고르세요</span>
-  </form>
-
-  <fieldset class="customers" id="customers">
-    <legend class="label">후보 고객</legend>
-  </fieldset>
-
-  <!-- 2단계: 개월 수 설정 (고객 ID 확인 후 활성화) -->
-  <div class="period off" id="period" role="group" aria-label="분석 기간">
-    <label><span class="label">시작일</span><input type="date" id="from" required disabled></label>
-    <span class="tilde">~</span>
-    <label><span class="label">종료일</span><input type="date" id="to" required disabled></label>
-    <div class="presets" id="presets">
-      <button class="btn" type="button" data-months="1" disabled>1개월</button>
-      <button class="btn" type="button" data-months="3" disabled>3개월</button>
-      <button class="btn" type="button" data-months="6" disabled>6개월</button>
-      <button class="btn" type="button" data-months="12" disabled>12개월</button>
-    </div>
-    <span class="period-note" id="periodNote"></span>
-  </div>
-
-  <main class="work">
-  <details class="cust" id="cust">
-    <summary><span class="s-desk">분석용 고객 정보</span><span class="s-mob" id="custMob"></span></summary>
-    <div class="cust-body">
-      <p class="consent">고객 동의 범위 안의 최소 정보만 사용합니다.</p>
-      <div>
-        <div class="who-name" id="custName"></div>
-        <div class="who-meta" id="custMeta"></div>
-      </div>
-      <div>
-        <div class="field-label">현재 상품</div>
-        <div class="plan-name" id="custPlan"></div>
-        <div class="plan-price" id="custPrice"></div>
-      </div>
-      <div>
-        <div class="field-label">선택 부가서비스</div>
-        <div class="plan-price" id="custSvc"></div>
-      </div>
-      <div>
-        <div class="field-label">월평균 데이터 사용량</div>
-        <div class="plan-price" id="custUsage"></div>
-      </div>
-      <div>
-        <div class="field-label">분석 범위</div>
-        <ul class="scope">
-          <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="var(--down)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>요금제 정보</li>
-          <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="var(--down)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>데이터 이용량</li>
-          <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="var(--down)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>콘텐츠 이용 유형</li>
-          <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="var(--down)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>결합·할인 정보</li>
-        </ul>
-      </div>
-      <div>
-        <div class="field-label">분석에 쓰지 않음</div>
-        <ul class="scope excluded">
-          <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/></svg>이름 · 연락처 · 주소</li>
-        </ul>
-      </div>
-      <p class="sample-note">왼쪽 고객 정보는 후보 고객 4명만 2026-10-02에 조회한 값으로 표시합니다. 그 밖의 ID는 ID만 표시되며, 분석 내용은 n8n 워크플로우가 돌려준 결과입니다.</p>
-    </div>
-  </details>
-
-  <section class="chat" aria-label="AI 상담 채팅">
-    <div class="feed" id="feed" role="log" aria-live="polite"></div>
-    <div class="composer">
-      <form id="form" autocomplete="off">
-        <textarea id="msg" rows="1" placeholder="고객 ID를 확인하면 입력할 수 있습니다" aria-label="메시지 입력" disabled></textarea>
-        <button class="btn primary" type="submit" id="send" disabled>전송</button>
+  <main class="work" id="work" data-view="report">
+    <!-- 왼쪽: 고객 선택 · 분석 기간 · 분석 전 사전 정보 -->
+    <aside class="side" aria-label="고객과 분석 기간">
+      <form class="blk" id="idForm" autocomplete="off" novalidate aria-label="고객 ID 입력">
+        <span class="label">고객 ID</span>
+        <div class="idrow">
+          <input type="text" id="uid" placeholder="예: U00603" maxlength="6" autocapitalize="characters" spellcheck="false" aria-describedby="idNote">
+          <button class="btn primary" type="submit" id="idBtn">확인</button>
+        </div>
+        <span class="note" id="idNote" role="status">고객 ID를 입력하거나 후보 고객을 고르세요</span>
       </form>
-      <div class="hint" id="hint">Enter 전송 · Shift+Enter 줄바꿈 · 분석에 1~2분 걸릴 수 있습니다</div>
-    </div>
-  </section>
+
+      <details class="cands" id="cands" open>
+        <summary class="label">후보 고객 (4)</summary>
+        <fieldset class="customers" id="customers"><legend hidden>후보 고객</legend></fieldset>
+      </details>
+
+      <div class="period" id="period" role="group" aria-label="분석 기간">
+        <span class="label">분석 기간</span>
+        <div class="dates">
+          <input type="date" id="from" required disabled aria-label="시작일">
+          <input type="date" id="to" required disabled aria-label="종료일">
+        </div>
+        <div class="presets" id="presets">
+          <button class="btn" type="button" data-months="1" disabled>1개월</button>
+          <button class="btn" type="button" data-months="3" disabled>3개월</button>
+          <button class="btn" type="button" data-months="6" disabled>6개월</button>
+          <button class="btn" type="button" data-months="12" disabled>12개월</button>
+        </div>
+        <span class="note" id="periodNote"></span>
+      </div>
+
+      <section class="base" aria-label="사전 고객 정보">
+        <span class="label">사전 정보 · 분석 전</span>
+        <div>
+          <div class="who-name" id="custName"></div>
+          <div class="who-meta" id="custMeta"></div>
+        </div>
+        <dl class="kv" id="custKv"></dl>
+        <p class="note" id="custNote"></p>
+        <details class="scope">
+          <summary>분석 범위</summary>
+          <ul>
+            <li>사용: 요금제 정보, 데이터 이용량, 콘텐츠 이용 유형, 결합·할인 정보</li>
+            <li>쓰지 않음: 이름 · 연락처 · 주소</li>
+            <li>고객 동의 범위 안의 최소 정보만 사용합니다</li>
+          </ul>
+        </details>
+      </section>
+    </aside>
+
+    <!-- 가운데: 검토 보고서 -->
+    <section class="report" id="report" aria-label="요금제 검토 보고서" aria-live="polite"></section>
+
+    <!-- 오른쪽: 후속 질문 -->
+    <section class="chat" aria-label="AI 상담 채팅">
+      <div class="chat-head"><span class="label">대화</span><span class="sid" id="sid"></span></div>
+      <div class="feed" id="feed" role="log" aria-live="polite"></div>
+      <div class="composer">
+        <form id="form" autocomplete="off">
+          <textarea id="msg" rows="1" placeholder="고객 ID를 확인하면 입력할 수 있습니다" aria-label="메시지 입력" disabled></textarea>
+          <button class="btn primary" type="submit" id="send" disabled>전송</button>
+        </form>
+        <div class="hint">Enter 전송 · Shift+Enter 줄바꿈 · 검토는 10초 안팎, 후속 질문은 2초 안팎</div>
+      </div>
+    </section>
   </main>
 </div>
+<div class="tip" id="tip" hidden></div>
 
 <script>
 (function () {
@@ -287,15 +389,13 @@ thead th { font-weight: 700; }
 
   var CONFIG = {
     chatUrl: '/api/chat',   // server.js가 n8n(CHAT_URL)으로 전달합니다. file://로 열면 동작하지 않으니 npm start로 실행하세요
-    timeoutMs: 120000,       // 한 번에 받기: n8n Cloud가 약 100초에서 끊으므로 그보다 길게 기다려도 소용없습니다
-    streamTimeoutMs: 600000, // 스트리밍: 마케팅 보고서는 3분 넘게 걸리기도 합니다
-    // false: 다 만든 뒤 한 번에 받습니다. 요금제 검토 보고서는 Respond to Webhook1(v1.4)이 보내는데, 이 노드는 스트리밍 응답에 쓰지 못해
-    // 스트리밍으로 받으면 보고서 대신 중간 Agent의 JSON만 옵니다. 검토는 10초 안팎, 후속 질문은 2초 안팎이라 100초 제한에 걸리지 않습니다
+    timeoutMs: 120000,       // n8n Cloud가 약 100초에서 끊으므로 그보다 길게 기다려도 소용없습니다
+    streamTimeoutMs: 600000,
+    // false: 다 만든 뒤 한 번에 받습니다. 보고서를 보내는 Respond to Webhook1(v1.4)은 스트리밍 응답에 쓰지 못합니다 (README 참고)
     stream: false,
-    opsUrl: '/operation-dashboard.html', // 운영 대시보드 (server.js가 제공). 비어 있으면 운영 버튼이 꺼진 채로 둡니다
-    idPattern: /^U\d{5}$/,   // 고객 ID 형식: U + 숫자 5자리 (예: U00603)
-    // 후보 고객 4명: 카드로 보여 주고 왼쪽 패널에 정보를 채웁니다. 입력한 ID가 여기 없어도 n8n에는 그대로 전달됩니다
-    // 2026-10-02 ai_personalization 뷰 조회 값. 월평균은 2026-04~09 (완전한 6개월) 기준입니다
+    opsUrl: '/operation-dashboard.html',
+    idPattern: /^U\d{5}$/,
+    // 후보 고객 4명: 2026-10-02 ai_personalization 뷰 조회 값. 월평균은 2026-04~09 (완전한 6개월) 기준입니다
     users: [
       { id: 'U00603', name: '김수서', plan: '초이스90', fee: 90000, data: '무제한 · 5G',
         services: ['티빙 스탠다드'], meta: '결합 없음 · KT 인터넷 없음', avgGb: 176.8,
@@ -314,8 +414,11 @@ thead th { font-weight: 700; }
         reason: '결합 후보 · 인터넷 보유·미결합, Disney+ 사용 기록 없음',
         ask: 'KT 인터넷과 결합하면 월 청구액이 얼마나 달라져?' }
     ],
-    dataStart: '2025-10-24', // 조회 가능한 가장 이른 날짜
-    defaultMonths: 6         // 기본 기간: 오늘로 끝나는 6개월
+    dataStart: '2025-10-24',
+    defaultMonths: 6,
+    // 상담 화면의 고정 가정. 단말은 5G로 보고 하향 정산 표시를 정하고, 인터넷 약정은 n8n 기준값(12개월)을 씁니다
+    fixed: { device: '5G', contractMonths: 12 },
+    fiveGFreeFee: 47000      // 5G 단말 심플코스: 새 월정액이 이 값 이상이면 차액정산 면제 (README 5항)
   };
 
   function esc(s) {
@@ -323,29 +426,35 @@ thead th { font-weight: 700; }
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function fmt(n) { return Number(n).toLocaleString('ko-KR'); }
+  function won(n) { return fmt(n) + '원'; }
+  function delta(n) {
+    if (!n) return '<span class="num">±0원</span>';
+    return '<span class="num ' + (n < 0 ? 'd-neg' : 'd-pos') + '">' + (n < 0 ? '−' : '+') + fmt(Math.abs(n)) + '원</span>';
+  }
 
-  /* 응답 본문(JSON, 또는 스트리밍 줄 단위 JSON)에서 답변 텍스트를 꺼냅니다. */
-  function replyText(raw) {
+  /* ---------- 응답 읽기 ----------
+     보고서 응답에는 output(마크다운)과 review(review-v1, 구조화 데이터)가 함께 옵니다. 후속 질문은 reply만 옵니다. */
+  function parseReply(raw) {
     var t = String(raw).trim(), body;
     try { body = JSON.parse(t); } catch (e) {
       var acc = '', seen = false;
       t.split('\n').forEach(function (l) {
         try { var o = JSON.parse(l); if (o && o.type === 'item' && typeof o.content === 'string') { acc += o.content; seen = true; } } catch (e2) { /* 무시 */ }
       });
-      return seen ? acc : t;
+      return { text: seen ? acc : t, payload: null };
     }
     if (Array.isArray(body)) body = body[0];
-    if (body && typeof body === 'object') {
-      // Chat Trigger는 output, Webhook + Respond to Webhook은 reply로 돌려줍니다
-      var out = body.output !== undefined ? body.output : body.reply !== undefined ? body.reply : body.text !== undefined ? body.text : body.message;
-      if (out === undefined) return '```\n' + JSON.stringify(body, null, 2) + '\n```';
-      return typeof out === 'string' ? out : '```\n' + JSON.stringify(out, null, 2) + '\n```';
-    }
-    return body == null ? '' : String(body);
+    if (!body || typeof body !== 'object') return { text: body == null ? '' : String(body), payload: null };
+    var out = body.output !== undefined ? body.output : body.reply !== undefined ? body.reply : body.text !== undefined ? body.text : body.message;
+    var text = out === undefined ? '```\n' + JSON.stringify(body, null, 2) + '\n```'
+      : typeof out === 'string' ? out : '```\n' + JSON.stringify(out, null, 2) + '\n```';
+    var review = body.review;
+    if (typeof review === 'string') { try { review = JSON.parse(review); } catch (e) { review = null; } }
+    var ok = review && typeof review === 'object' && /^review-/.test(review.version || '') && review.data && Array.isArray(review.data.options);
+    return { text: text, payload: ok ? { review: review, analysisId: body.analysis_id || '' } : null };
   }
 
-  /* Agent는 LLM을 부를 때마다 begin…end 구간을 하나씩 보냅니다. 마지막으로 글자가 나온 구간이 최종 답입니다.
-     Respond to Webhook 노드가 같이 보내는 {reply} 조각은 Agent 글자가 없을 때만 씁니다. */
   function StreamState() { this.segs = []; this.steps = 0; this.error = ''; this.respond = ''; this.buf = ''; }
   StreamState.prototype.push = function (chunk) {
     var lines = (this.buf + chunk).split('\n');
@@ -366,10 +475,10 @@ thead th { font-weight: 700; }
   };
   StreamState.prototype.text = function () {
     for (var i = this.segs.length - 1; i >= 0; i--) if (this.segs[i].trim()) return this.segs[i];
-    return this.respond ? replyText(this.respond) : '';
+    return this.respond ? parseReply(this.respond).text : '';
   };
 
-  /* 아주 작은 마크다운 렌더러. 입력은 항상 esc()를 거칩니다. */
+  /* ---------- 작은 마크다운 렌더러 (입력은 항상 esc()를 거칩니다) ---------- */
   function cells(row) { return row.trim().replace(/^\||\|$/g, '').split('|').map(function (c) { return c.trim(); }); }
   function inline(s) {
     return s
@@ -407,7 +516,6 @@ thead th { font-weight: 700; }
         if (list !== tag) { closeList(); html += '<' + tag + '>'; list = tag; }
         html += '<li>' + inline(esc((ul || ol)[1]));
         i++;
-        // 들여쓴 하위 항목은 한 단계 안쪽 목록으로 묶습니다
         var sub = [];
         while (i < lines.length && /^\s{2,}[-*]\s+/.test(lines[i])) { sub.push(lines[i].replace(/^\s*[-*]\s+/, '')); i++; }
         if (sub.length) html += '<ul>' + sub.map(function (s) { return '<li>' + inline(esc(s)) + '</li>'; }).join('') + '</ul>';
@@ -415,7 +523,6 @@ thead th { font-weight: 700; }
       }
       closeList();
       if (/^\s*>/.test(ln)) {
-        // 연속된 인용 줄은 하나의 상자로 묶고, 안쪽도 마크다운으로 그립니다
         var quote = [];
         while (i < lines.length && /^\s*>/.test(lines[i])) { quote.push(lines[i].replace(/^\s*>\s?/, '')); i++; }
         html += '<blockquote class="md">' + md(quote.join('\n')) + '</blockquote>';
@@ -428,17 +535,112 @@ thead th { font-weight: 700; }
     closeList();
     return html;
   }
+  // 보고서 마크다운을 "#### 제목" 단위로 나눕니다 (유의사항·가족결합·주의점은 n8n이 쓴 문장을 그대로 씁니다)
+  function sections(out) {
+    var map = {}, cur = '_top';
+    map[cur] = [];
+    String(out || '').replace(/\r/g, '').split('\n').forEach(function (l) {
+      var h = l.match(/^####\s+(.*)$/);
+      if (h) { cur = h[1].trim(); map[cur] = []; } else map[cur].push(l);
+    });
+    Object.keys(map).forEach(function (k) { map[k] = map[k].join('\n').trim(); });
+    return map;
+  }
+  function sectionTitle(map, prefix) { return Object.keys(map).filter(function (k) { return k.indexOf(prefix) === 0; })[0] || ''; }
+
+  /* ============ 가정 바꿔 보기 계산 ============
+     n8n Evaluate Options가 낸 값(review.data.options)을 그대로 쓰고, 다음 세 가지만 화면에서 다시 더하고 뺍니다.
+       1) 선택약정 25%: 각 선택지의 selective(월정액 × 25%)를 뺍니다
+       2) 본인 결합 할인: 범위 [최소, 최대] 중 하나를 고릅니다 (기준 회선 동률 / 할인 배분)
+       3) 계속 쓸 유료 서비스: 고객이 끊을 서비스의 정가를 별도 구독액(extra)에서 뺍니다
+     인터넷 약정기간처럼 결합 규칙이 바뀌는 가정은 화면에서 계산하지 않습니다 (n8n이 다시 계산해야 합니다).
+     처음 그릴 때 화면 계산이 보고서 값과 같은지 확인하고, 다르면 이 기능을 끄고 보고서 값만 보여 줍니다. */
+  function defaultW() { return { selective: false, tie: 'min', drop: {} }; }
+  function isCurrent(o) { return o.key === 'CURRENT' || (o.profiles || []).indexOf('current') >= 0; }
+  // 각 선택지에서 별도 구독해야 하는 유료 서비스. 현재 상태는 목록이 없어 "선택하지 않았지만 쓰는 유료 서비스"로 만듭니다
+  function uncoveredOf(o, D) {
+    if (Array.isArray(o.uncovered)) return o.uncovered;
+    if (isCurrent(o)) return (D.services || []).filter(function (s) { return s.access === 'PAYWALLED' && s.status === 'NOT_SELECTED_USED'; })
+      .map(function (s) { return { name: s.name, won: s.list_price_won || 0 }; });
+    return [];
+  }
+  function sum(list) { return list.reduce(function (a, b) { return a + (b.won || 0); }, 0); }
+  function famTotal(o, D) {
+    if (o.bundle && typeof o.bundle.family_total === 'number') return o.bundle.family_total;
+    if (isCurrent(o) && D.bundle && D.bundle.current && typeof D.bundle.current.family_total === 'number') return D.bundle.current.family_total;
+    return 0;
+  }
+  function calcOne(o, D, W) {
+    var unc = uncoveredOf(o, D), dropOk = sum(unc) === (o.extra || 0);
+    var dropped = dropOk ? sum(unc.filter(function (u) { return W.drop[u.name]; })) : 0;
+    var extra = (o.extra || 0) - dropped, bill = o.fee + extra;
+    var disc = Array.isArray(o.discount) ? o.discount[W.tie === 'max' ? 1 : 0] || 0 : 0;
+    var sel = W.selective ? o.selective || 0 : 0;
+    return { o: o, unc: unc, dropOk: dropOk, extra: extra, bill: bill, disc: disc, sel: sel, final: bill - disc - sel, fam: famTotal(o, D) };
+  }
+  function calc(D, W) {
+    var rows = D.options.map(function (o) { return calcOne(o, D, W); });
+    var cur = rows.filter(function (r) { return isCurrent(r.o); })[0] || rows[0];
+    rows.forEach(function (r) {
+      r.own = r.final - cur.final;
+      // 가족 전체 = 본인 회선 요금 변화(결합 할인 전, 선택약정 반영) − 가족 결합 할인 합계 변화. 다른 가족 회선 요금제는 그대로
+      r.family = (r.bill - r.sel) - (cur.bill - cur.sel) - (r.fam - cur.fam);
+    });
+    var alts = rows.filter(function (r) { return r !== cur; });
+    function minBy(k) { var m = Math.min.apply(null, alts.map(function (r) { return r[k]; })); return alts.filter(function (r) { return r[k] === m; }); }
+    return { rows: rows, cur: cur, bestOwn: alts.length ? minBy('own') : [], bestFam: alts.length ? minBy('family') : [] };
+  }
+  // 화면 계산이 보고서 값과 같은지 확인합니다 (기본 가정, 선택약정 적용 두 가지)
+  function selfCheck(D) {
+    try {
+      var a = calc(D, defaultW()), b = calc(D, { selective: true, tie: 'min', drop: {} }), bad = [];
+      a.rows.forEach(function (r, i) {
+        var o = r.o;
+        if (r.final !== o.final) bad.push(o.label + ' 최종 청구');
+        if (!isCurrent(o) && typeof o.saving === 'number' && r.own !== -o.saving) bad.push(o.label + ' 본인 현재 대비');
+        if (typeof o.family_monthly_change === 'number' && r.family !== o.family_monthly_change) bad.push(o.label + ' 가족 전체');
+        if (typeof o.final_selective === 'number' && b.rows[i].final !== o.final_selective) bad.push(o.label + ' 선택약정');
+      });
+      return bad;
+    } catch (e) { return ['계산 오류: ' + e.message]; }
+  }
+
+  var PROFILE = { current: '현재 상태', lowest_bill_keep_access: '최저 청구', safe_margin: '여유 용량', balanced: '균형',
+    lowest_fee_drop_extras: '최저 월정액', minimum_change: '최소 변경', max_coverage: '최대 혜택', bundle_only: '결합만 가입',
+    lowest_bill_selective: '선택약정 시 최저' };
+  var BUNDLE_TYPE = { PREMIUM_FAMILY: '프리미엄 가족결합', INTERNET_MOBILE: '인터넷·모바일 결합' };
+  var BUNDLE_METHOD = { TOTAL: '총액', FIXED: '정액' };
+  var BUNDLE_ACTION = { JOIN: '가입 시', KEEP: '유지', CHANGE: '변경', SWITCH: '전환', NONE: '' };
+  function bundleText(o) {
+    if (!o.bundle) return '결합 없음';
+    var b = o.bundle;
+    return (BUNDLE_TYPE[b.type] || b.type || '결합') + (b.method ? ' · ' + (BUNDLE_METHOD[b.method] || b.method) : '') +
+      (BUNDLE_ACTION[o.bundle_action] ? ' (' + BUNDLE_ACTION[o.bundle_action] + ')' : '');
+  }
+  // 주의 열: 5G 단말 가정으로 하향 정산 표시를 하나로 정합니다
+  function warnings(o) {
+    var w = [];
+    if (o.settlement) w.push(o.fee >= CONFIG.fiveGFreeFee ? '하향: 베이직코스면 정산' : '하향: 정산 대상 (5G)');
+    if (o.bundle_loss > 0) w.push('결합 할인 월 −' + fmt(o.bundle_loss) + '원');
+    if (o.bundle_unpriced) w.push('결합 할인 변동 (미계산)');
+    if (typeof o.headroom === 'number') w.push('여유 ' + o.headroom + 'GB');
+    return w;
+  }
+  function planName(label) { return String(label || '').replace(/\s*\[[^\]]*\]\s*$/, ''); }
+  function benefits(label) { var m = String(label || '').match(/\[([^\]]*)\]\s*$/); return m ? m[1] : ''; }
 
   /* ============ 화면 ============ */
   var $ = function (s) { return document.querySelector(s); };
   var feed = $('#feed'), msg = $('#msg'), form = $('#form'), sendBtn = $('#send'), picker = $('#customers');
   var idForm = $('#idForm'), idIn = $('#uid'), idBtn = $('#idBtn'), idNote = $('#idNote');
-  var fromIn = $('#from'), toIn = $('#to'), presets = $('#presets'), periodBox = $('#period'), periodNote = $('#periodNote');
+  var fromIn = $('#from'), toIn = $('#to'), presets = $('#presets'), periodNote = $('#periodNote');
+  var reportEl = $('#report'), work = $('#work'), tip = $('#tip');
   var busy = false, curCtrl = null;
-  // user가 null이면 아직 고객 ID를 확인하기 전입니다. 고객마다 대화(n8n 메모리 세션)를 따로 둡니다
-  var user = null, convs = {};
+  // 고객별 상담 상태. 한 상담(sessionId)에는 분석이 하나만 있습니다
+  var user = null, S = {};
+  function st() { return user ? S[user] : null; }
+  function fresh() { return { sid: newId(), feed: '', report: null, W: defaultW(), tab: 'options', open: {}, loading: false }; }
   function info(id) { return CONFIG.users.filter(function (u) { return u.id === id; })[0] || null; }
-  function won(n) { return '월 ' + Number(n).toLocaleString('ko-KR') + '원'; }
   var DOTS = '<div class="dots" aria-label="응답 생성 중"><i></i><i></i><i></i></div>';
 
   function newId() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'sess-' + Date.now().toString(36) + Math.random().toString(36).slice(2); }
@@ -455,29 +657,37 @@ thead th { font-weight: 700; }
     return '서버에 연결하지 못했습니다. 잠시 후 다시 시도하세요.';
   }
   function scrollDown() { feed.scrollTop = feed.scrollHeight; }
+  function setView(v) {
+    work.dataset.view = v;
+    document.querySelectorAll('.viewswitch [data-view]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.view === v ? 'true' : 'false'); });
+  }
+  document.querySelector('.viewswitch').addEventListener('click', function (e) { var b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
 
-  /* 입력 가능 여부를 한 곳에서 정합니다: 고객 ID 확인 전에는 기간·채팅이 잠겨 있고, 응답을 기다리는 동안은 ID와 채팅이 잠깁니다 */
+  /* 입력 가능 여부를 한 곳에서 정합니다. 분석이 나온 상담에서는 기간을 바꿀 수 없습니다 (새 대화에서 다시 분석) */
   function applyEnabled() {
-    var ready = !!user;
+    var ready = !!user, s = st(), locked = !!(s && (s.report || s.loading));
     msg.disabled = busy || !ready;
-    feed.querySelectorAll('.chip').forEach(function (c) { c.disabled = busy; });
     sendBtn.disabled = busy || !ready;
+    document.querySelectorAll('.chip, [data-start]').forEach(function (c) { c.disabled = busy || !ready; });
     picker.disabled = busy;
     picker.querySelectorAll('input').forEach(function (r) { r.checked = r.value === user; });
     idIn.disabled = busy;
     idBtn.disabled = busy;
-    fromIn.disabled = !ready;
-    toIn.disabled = !ready;
-    presets.querySelectorAll('[data-months]').forEach(function (b) { b.disabled = !ready; });
-    periodBox.classList.toggle('off', !ready);
-    msg.placeholder = ready ? '메시지를 입력하세요' : '고객 ID를 확인하면 입력할 수 있습니다';
+    fromIn.disabled = toIn.disabled = !ready || locked;
+    presets.querySelectorAll('[data-months]').forEach(function (b) { b.disabled = !ready || locked; });
+    $('#reset').disabled = !ready;
+    msg.placeholder = !ready ? '고객 ID를 확인하면 입력할 수 있습니다' : s && s.report ? '보고서에 대해 질문하세요' : '분석할 내용을 입력하세요';
+    $('#sid').textContent = s ? '상담 ' + s.sid.slice(0, 8) : '';
+    syncPeriod();
   }
-  function lock(b) { busy = b; applyEnabled(); if (!b && user) msg.focus(); }
+  function lock(b) { busy = b; applyEnabled(); if (!b && user) msg.focus({ preventScroll: true }); }
   function fit() { msg.style.height = 'auto'; msg.style.height = Math.min(msg.scrollHeight, 160) + 'px'; }
 
-  // intent: 'review'면 n8n이 저장된 분석이 있어도 새로 분석합니다. 비워 두면 같은 상담·기간의 분석이 있을 때 후속 질문으로 답합니다
   async function send(text, intent) {
-    feed.querySelectorAll('.suggest').forEach(function (el) { el.remove(); });   // 지난 추천 질문은 새 질문을 보내면 지웁니다
+    var s = st(), forUser = user;
+    feed.querySelectorAll('.suggest').forEach(function (el) { el.remove(); });
+    var firstAnalysis = !s.report;
+    if (firstAnalysis) { s.loading = true; renderReport(); }
     lock(true);
     msg.value = ''; fit();
     add(userRow(text));
@@ -490,39 +700,34 @@ thead th { font-weight: 700; }
       var res = await fetch(CONFIG.chatUrl + (streaming ? '?stream=1' : ''), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // chatInput은 Chat Trigger용, userMessage는 Webhook 트리거용 필드입니다 (같은 값). n8n에서는 $json.userId로 읽습니다
-        body: JSON.stringify({ action: 'sendMessage', sessionId: convs[user], chatInput: text, userMessage: text,
-          userId: user, startDate: fromIn.value, endDate: toIn.value, intent: intent || '' }),
+        // contractMonths: 상담 화면은 인터넷 약정 12개월(n8n 기준값)로 고정합니다
+        body: JSON.stringify({ action: 'sendMessage', sessionId: s.sid, chatInput: text, userMessage: text,
+          userId: forUser, startDate: fromIn.value, endDate: toIn.value, intent: intent || '', contractMonths: CONFIG.fixed.contractMonths }),
         signal: ctrl.signal
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      var reply;
+      var parsed;
       if (streaming && res.body) {
-        var st = new StreamState(), reader = res.body.getReader(), dec = new TextDecoder(), queued = false;
-        var paint = function () {
-          queued = false;
-          if (curCtrl !== ctrl) return;
-          var near = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 80;
-          var t = splitSuggest(st.text()).body;   // 덜 온 추천 질문 블록은 감춥니다
-          bubble.innerHTML = t ? '<div class="md">' + md(t) + '</div>'
-            : '<p class="status">데이터를 조회하고 있습니다' + (st.steps > 1 ? ' · ' + st.steps + '단계' : '') + '</p>' + DOTS;
-          if (near) scrollDown();
-        };
-        for (;;) {
-          var r = await reader.read();
-          if (r.done) break;
-          st.push(dec.decode(r.value, { stream: true }));
-          if (!queued) { queued = true; requestAnimationFrame(paint); }
-        }
-        st.push(dec.decode() + '\n');
-        if (st.error && !st.text()) throw Object.assign(new Error('n8n'), { n8n: st.error });
-        reply = st.text();
+        var ss = new StreamState(), reader = res.body.getReader(), dec = new TextDecoder();
+        for (;;) { var r = await reader.read(); if (r.done) break; ss.push(dec.decode(r.value, { stream: true })); }
+        ss.push(dec.decode() + '\n');
+        if (ss.error && !ss.text()) throw Object.assign(new Error('n8n'), { n8n: ss.error });
+        parsed = { text: ss.text(), payload: null };
       } else {
-        reply = replyText(await res.text());
+        parsed = parseReply(await res.text());
       }
       if (curCtrl !== ctrl) return;
-      var sp = splitSuggest(reply);
-      bubble.innerHTML = aiText(sp.body);
+      var sp = splitSuggest(parsed.text);
+      // 보고서 응답이면 가운데 패널에 열고, 채팅에는 요약만 남깁니다
+      var isReport = parsed.payload || (!s.report && /^####\s+요금제 검토/m.test(sp.body));
+      if (isReport) {
+        s.report = { out: sp.body, payload: parsed.payload, checks: parsed.payload ? selfCheck(parsed.payload.review.data) : [] };
+        s.W = defaultW(); s.tab = 'options'; s.open = {};
+        bubble.classList.add('done');
+        bubble.innerHTML = reportSummary(s.report);
+      } else {
+        bubble.innerHTML = aiText(sp.body);
+      }
       if (sp.body.trim()) row.insertAdjacentHTML('beforeend', chips(sp.list.length ? sp.list : suggest(sp.body)));
     } catch (e) {
       if (curCtrl !== ctrl) return;
@@ -530,14 +735,28 @@ thead th { font-weight: 700; }
       bubble.innerHTML = '<p class="err-title">답변을 받지 못했습니다</p><p>' + errorText(e, ms) + '</p>';
     } finally {
       clearTimeout(timer);
-      if (curCtrl === ctrl) { curCtrl = null; lock(false); }
+      if (curCtrl === ctrl) {
+        curCtrl = null; s.loading = false;
+        if (user === forUser) { renderReport(); lock(false); }
+      }
     }
-    row.scrollIntoView({ block: 'start' });
+    row.scrollIntoView({ block: 'nearest' });
   }
 
-  /* ---------- 추천 질문 ----------
-     답변에서 근거 값(요금제·혜택·최대 사용량·선택지·주의점)을 뽑아, 개인화 조회 카탈로그(PERS_xxx)로
-     답할 수 있는 다음 질문을 만듭니다. n8n이 ```suggestions 블록(한 줄에 질문 하나)을 보내면 그것을 우선합니다. */
+  function reportSummary(rep) {
+    var line = '';
+    if (rep.payload && !rep.checks.length) {
+      var c = calc(rep.payload.review.data, defaultW()), f = c.bestFam[0];
+      if (f) line = '<p>가족 전체 기준 최저: <strong>' + esc(planName(f.o.label)) + '</strong> · 가족 ' + delta(f.family) + ' · 본인 ' + delta(f.own) + ' /월</p>';
+    }
+    return '<div class="md"><p><strong>검토 보고서를 열었습니다.</strong> 선택지 비교, 사용량, 가족결합은 보고서 패널에서 보세요.</p>' + line +
+      '<p><button class="btn sm" type="button" data-show-report>보고서 보기</button></p></div>';
+  }
+  feed.addEventListener('click', function (e) {
+    if (e.target.closest('[data-show-report]')) { setView('report'); reportEl.scrollTop = 0; }
+  });
+
+  /* ---------- 추천 질문 ---------- */
   var MAX_SUGGEST = 5;
   function splitSuggest(t) {
     t = String(t || '');
@@ -548,45 +767,34 @@ thead th { font-weight: 700; }
     return { body: t.replace(m[0], '').trim(), list: list };
   }
   function suggest(reply) {
-    // 마크다운 표(|)와 복사해 붙인 표(탭)를 같은 모양으로 맞춥니다
     var t = String(reply).replace(/\*\*|`/g, '').replace(/[ \t]*\|[ \t]*/g, '\t'), out = [], m;
     function q(text, ref) { if (!out.some(function (o) { return o.text === text; })) out.push({ text: text, ref: ref }); }
     var benefit = (m = t.match(/현재 혜택\s+([^\n\t]+)/)) && !/없음|^-$/.test(m[1].trim()) ? m[1].trim() : '';
     var have = benefit ? benefit.split(/[,·]\s*/).map(function (x) { return x.trim().toLowerCase(); }) : [];
-    var options = [];   // 바꾸는 선택지: { name, svcs, line }
+    var options = [];
     t.split('\n').forEach(function (ln) {
       var o = ln.trim().match(/^([^\t\[]+?)\s*\[([^\]]*)\]/);
       if (o && /요금제 변경/.test(ln)) options.push({ name: o[1].trim(), svcs: /혜택 없음/.test(o[2]) ? [] : o[2].split(/,\s*/), line: ln });
     });
-
-    // 1. 결과끼리 어긋나면 그 이유부터 묻습니다 (참고 최적화 결과는 싸다는데 표에서는 더 비싼 경우)
     if ((m = t.match(/최적화 결과:\s*([^:\n]+?):[^\n]*?difference\s*₩?([\d,]+)/i))) {
       var name = m[1].trim(), diff = m[2];
       var opt = options.filter(function (o) { return o.name === name; })[0];
       var more = opt && opt.line.match(/\+[\d,]+원/);
       if (more) q('참고 결과(' + opt.name + ', 월 ' + diff + '원 절감)와 선택지 표(' + more[0] + ')가 다른 이유를 설명해줘', '답변 내 계산');
     }
-    // 2. 지금 받는 혜택을 실제로 쓰는지
     if (benefit) q(benefit + ' 실제 사용량이 월별로 얼마나 돼? 혜택을 유지할 만큼 쓰고 있어?', 'PERS_006');
-    // 3. 최대 사용량이 나온 달 파고들기
     if ((m = t.match(/최대 사용량[^\n]*?\/\s*([\d.,]+)\s*GB/))) q('사용량이 가장 많았던 달(최대 ' + m[1] + 'GB)에는 어떤 콘텐츠를 많이 썼어?', 'PERS_001 → PERS_005');
-    // 4. 다른 선택지가 새로 주는 혜택이 이 고객에게 쓸모 있는지
     options.forEach(function (o) {
       o.svcs.forEach(function (sv) {
         if (have.indexOf(sv.trim().toLowerCase()) < 0) q(o.name + '에 들어 있는 ' + sv.trim() + ', 이 고객이 실제로 쓸 만한지 사용 성향으로 판단해줘', 'PERS_014 · PERS_004');
       });
     });
-    // 5. 분석에서 뺀 이번 달 추세
     if ((m = t.match(/분석 제외 월\s+(\d{4})-(\d{2})\s*\((\d+)일,\s*([\d.,]+)\s*GB/)))
       q(Number(m[2]) + '월 ' + m[3] + '일 동안 ' + m[4] + 'GB를 썼는데, 최근 7·30일 추세가 평소와 비교해 어때?', 'PERS_002 · PERS_012');
-    // 6. 계산에서 빠진 할인·결합
     if (/가족결합 할인은 포함되지/.test(t)) q('가족결합이나 KT 인터넷 결합을 하면 선택지별 청구액이 어떻게 달라져?', 'PERS_011 · PERS_010');
-    // 7. 현재 유지가 답일 때, 언제 바꾸는 게 나아지는지
     var cheapest = options.filter(function (o) { return /최저 월정액/.test(o.line); })[0];
     if (cheapest && /현재[^\n]*최저 청구/.test(t)) q('사용량이나 구독이 어떻게 바뀌면 ' + cheapest.name + ' 쪽이 더 유리해져?', '답변 내 계산');
-    // 요금제 검토 형식이 아닌 답변이면 고객 단위 기본 질문을 드립니다
     if (!out.length) {
-      q('이 고객의 요금제가 적정한지 검토해줘', 'PERS_012 · PERS_013');
       q('최근 7일·30일 사용량을 6개월 평균과 비교해줘', 'PERS_012 · PERS_001');
       q('현재 할인과 결합 상태를 정리해줘', 'PERS_010 · PERS_011');
     }
@@ -595,39 +803,255 @@ thead th { font-weight: 700; }
   function chips(list) {
     if (!list.length) return '';
     return '<div class="suggest"><span class="label">추천 질문</span><div class="chips">' + list.map(function (s) {
-      return '<button class="chip" type="button" data-q="' + esc(s.text) + '"' + (s.intent ? ' data-intent="' + esc(s.intent) + '"' : '') + (s.ref ?' title="근거 조회: ' + esc(s.ref) + '"' : '') + '>' + esc(s.text) + '</button>';
+      return '<button class="chip" type="button" data-q="' + esc(s.text) + '"' + (s.intent ? ' data-intent="' + esc(s.intent) + '"' : '') + (s.ref ? ' title="근거 조회: ' + esc(s.ref) + '"' : '') + '>' + esc(s.text) + '</button>';
     }).join('') + '</div></div>';
   }
-  // 고객을 고른 직후의 시작 질문: 공통 질문 + 후보 고객별 질문
   function starters(u) {
     var list = [{ text: '이 고객의 요금제가 적정한지 검토해줘', ref: 'PERS_012 · PERS_013', intent: 'review' }];
     if (u && u.ask) list.push({ text: u.ask });
     list.push({ text: '최근 7일·30일 사용량을 6개월 평균과 비교해줘', ref: 'PERS_012 · PERS_001' });
-    if (!u) list.push({ text: '현재 할인과 결합 상태를 정리해줘', ref: 'PERS_010 · PERS_011' });
     return list;
   }
 
+  /* ============ 가운데 패널 ============ */
+  function renderReport() {
+    var s = st();
+    if (!s) { reportEl.innerHTML = '<div class="empty"><h2>고객을 먼저 고르세요</h2><p>왼쪽에 고객 ID를 입력하거나 후보 고객을 고르면, 분석 기간을 정하고 검토를 시작할 수 있습니다.</p></div>'; return; }
+    if (s.loading) {
+      reportEl.innerHTML = '<div class="loading" aria-label="분석 중"><div class="note">' + esc(fromIn.value) + ' ~ ' + esc(toIn.value) + ' 사용량으로 요금제를 검토하고 있습니다 · 10초 안팎</div>' +
+        '<div class="sk" style="height:34px;width:50%"></div><div class="kpis"><div class="sk" style="height:84px"></div><div class="sk" style="height:84px"></div><div class="sk" style="height:84px"></div></div><div class="sk" style="height:320px"></div></div>';
+      return;
+    }
+    if (!s.report) {
+      reportEl.innerHTML = '<div class="empty"><h2>아직 분석이 없습니다</h2><p>왼쪽에서 분석 기간(' + esc(fromIn.value) + ' ~ ' + esc(toIn.value) + ')을 확인한 뒤 검토를 시작하세요. ' +
+        '검토가 끝나면 이 상담의 기간은 고정되고, 다른 기간은 <strong>새 대화</strong>에서 분석합니다.</p>' +
+        '<button class="btn primary" type="button" data-start>요금제 적정성 검토 시작</button></div>';
+      return;
+    }
+    var rep = s.report, secs = sections(rep.out);
+    if (!rep.payload || rep.checks.length) {
+      // 구조화 데이터가 없거나 화면 계산이 보고서와 다르면, 보고서 원문을 넓게 보여 줍니다
+      reportEl.innerHTML = (rep.checks.length ? '<p class="wi-off">화면 계산이 보고서 값과 달라 가정 바꿔 보기를 껐습니다 (' + esc(rep.checks.slice(0, 3).join(', ')) + '). 아래는 보고서 원문입니다.</p>' : '') +
+        '<div class="fallback">' + aiText(rep.out) + '</div>';
+      return;
+    }
+    var D = rep.payload.review.data, c = calc(D, s.W);
+    var title = sectionTitle(secs, '요금제 검토') || '요금제 검토';
+    var P = D.period || {}, months = P.months || [];
+    var meta = (months.length ? months[0].month + ' ~ ' + months[months.length - 1].month + ' · 완전한 ' + (P.complete_months || months.length) + '개월' : '') +
+      (rep.payload.analysisId ? ' · ' + rep.payload.analysisId : '') + (rep.payload.review.as_of ? ' · ' + rep.payload.review.as_of + ' 기준' : '');
+    var nNotice = (secs['유의사항'] || '').split('\n').filter(function (l) { return /^-\s/.test(l); }).length;
+    reportEl.innerHTML =
+      '<div class="rhead"><h2>' + esc(title) + '</h2><span class="meta">' + esc(meta) + '</span></div>' +
+      '<div class="kpis" id="kpis">' + kpis(c) + '</div>' +
+      (secs['유의사항'] ? '<div class="notices' + (s.noticeFull ? '' : ' clamp') + '"><div class="nh"><span>유의사항 ' + nNotice + '건</span><button class="btn sm" type="button" data-notice aria-expanded="' + !!s.noticeFull + '">' + (s.noticeFull ? '접기' : '전체 보기') + '</button></div><div class="md">' + md(secs['유의사항']) + '</div></div>' : '') +
+      '<div class="tabs" role="tablist">' + [['options', '선택지 비교'], ['usage', '사용량'], ['bundle', '가족결합'], ['raw', '보고서 원문']].map(function (t) {
+        return '<button class="tab" role="tab" type="button" data-tab="' + t[0] + '" aria-selected="' + (s.tab === t[0]) + '">' + t[1] + '</button>';
+      }).join('') + '</div>' +
+      '<div id="tabBody">' + tabBody(s, D, c, secs) + '</div>';
+  }
+
+  function kpis(c) {
+    var cur = c.cur, f = c.bestFam[0], o = c.bestOwn[0], h = '';
+    h += '<div class="kpi"><div class="label">현재 최종 청구 · 본인</div><div class="v">' + won(cur.final) + '</div><div class="s">' + esc(planName(cur.o.label)) + ' · ' + esc(benefits(cur.o.label) || '혜택 없음') + '</div></div>';
+    if (f) h += '<div class="kpi hl"><div class="label">가족 전체 기준 최저</div><div class="v">' + delta(f.family) + '<span class="s"> /월</span></div><div class="s">' +
+      esc(c.bestFam.map(function (r) { return planName(r.o.label); }).join(', ')) + ' · 본인 ' + delta(f.own) + '</div></div>';
+    if (o && o !== f) h += '<div class="kpi"><div class="label">본인 청구 기준 최저</div><div class="v">' + delta(o.own) + '<span class="s"> /월</span></div><div class="s">' +
+      esc(c.bestOwn.map(function (r) { return planName(r.o.label); }).join(', ')) + ' · 최종 ' + won(o.final) + '</div></div>';
+    else if (o) h += '<div class="kpi"><div class="label">그 선택지의 본인 최종 청구</div><div class="v">' + won(o.final) + '</div><div class="s">본인 청구 기준으로도 최저입니다</div></div>';
+    return h;
+  }
+
+  function tabBody(s, D, c, secs) {
+    if (s.tab === 'usage') return usageView(D);
+    if (s.tab === 'bundle') return secs['가족결합'] ? '<div class="fallback"><div class="md">' + md(secs['가족결합']) + '</div></div>'
+      : '<div class="fallback"><p class="note">이 고객은 가족결합 계산 대상이 아닙니다 (가족이 있고 KT 인터넷을 쓸 때만 계산합니다).</p></div>';
+    if (s.tab === 'raw') return '<div class="fallback">' + aiText(s.report.out) + '</div>';
+    return whatIf(s, D) + optionsTable(s, D, c) + optionsFoot(secs);
+  }
+
+  function whatIf(s, D) {
+    var W = s.W, names = {}, order = [];
+    D.options.forEach(function (o) { uncoveredOf(o, D).forEach(function (u) { if (!(u.name in names)) { names[u.name] = u.won; order.push(u.name); } }); });
+    var hasRange = D.options.some(function (o) { return Array.isArray(o.discount) && o.discount[0] !== o.discount[1]; });
+    var changed = W.selective || W.tie !== 'min' || Object.keys(W.drop).some(function (k) { return W.drop[k]; });
+    function seg(key, opts) {
+      return '<div class="seg" role="group">' + opts.map(function (p) {
+        return '<button type="button" data-w="' + key + '" data-v="' + p[0] + '" aria-pressed="' + (String(W[key]) === p[0]) + '"' + (p[2] ? ' disabled' : '') + '>' + p[1] + '</button>';
+      }).join('') + '</div>';
+    }
+    return '<div class="whatif" aria-label="가정 바꿔 보기">' +
+      '<div class="wi"><span class="label">선택약정 25%</span>' + seg('selective', [['false', '미적용'], ['true', '적용']]) + '</div>' +
+      '<div class="wi"><span class="label" title="기준 회선이 동률이거나 할인 배분이 정해지지 않으면 본인 회선 할인이 범위로 나옵니다. 가족 합계는 바뀌지 않습니다">본인 결합 할인 (동률·배분) ⓘ</span>' +
+        seg('tie', [['min', '최소 · 보고서 기준', !hasRange], ['max', '최대', !hasRange]]) + '</div>' +
+      (order.length ? '<div class="wi"><span class="label">계속 쓸 유료 서비스 (별도 구독 정가)</span><div class="checks">' + order.map(function (n) {
+        return '<label><input type="checkbox" data-keep="' + esc(n) + '"' + (W.drop[n] ? '' : ' checked') + '>' + esc(n) + ' <span class="note num">' + fmt(names[n]) + '</span></label>';
+      }).join('') + '</div></div>' : '') +
+      '<div class="wi"><span class="label">고정 가정</span><div class="checks"><span class="lock">🔒 ' + CONFIG.fixed.device + ' 단말</span><span class="lock">🔒 인터넷 약정 ' + CONFIG.fixed.contractMonths + '개월</span></div></div>' +
+      '<div class="wi-foot"><span>' + (changed ? '<span class="changed">화면 계산 중</span> · 보고서 값에서 가정만 바꿔 다시 더했습니다. 요금제 후보와 결합 규칙은 그대로입니다'
+        : '보고서 값 그대로입니다') + '</span>' + (changed ? '<button class="btn sm" type="button" data-wreset>보고서 값으로</button>' : '') + '</div>' +
+      '</div>';
+  }
+
+  function optionsTable(s, D, c) {
+    var bestF = c.bestFam.map(function (r) { return r.o.key; }), bestO = c.bestOwn.map(function (r) { return r.o.key; });
+    var head = '<tr><th scope="col">선택지</th><th scope="col">월정액</th><th scope="col">별도 구독</th><th scope="col">본인 결합 할인</th>' +
+      (s.W.selective ? '<th scope="col">선택약정</th>' : '') + '<th scope="col">최종 청구</th><th scope="col">본인 현재 대비</th><th scope="col">가족 전체 현재 대비</th></tr>';
+    var cols = s.W.selective ? 8 : 7;
+    var body = c.rows.map(function (r) {
+      var o = r.o, cur = isCurrent(o), open = !!s.open[o.key];
+      var tags = (o.profiles || []).filter(function (p) { return p !== 'current'; }).map(function (p) { return '<span class="tag">' + esc(PROFILE[p] || p) + '</span>'; });
+      if (bestF.indexOf(o.key) >= 0) tags.unshift('<span class="tag best">가족 최저</span>');
+      if (bestO.indexOf(o.key) >= 0) tags.unshift('<span class="tag best">본인 최저</span>');
+      warnings(o).forEach(function (w) { tags.push('<span class="tag warn">⚠ ' + esc(w) + '</span>'); });
+      var name = '<div class="oname"><button type="button" data-row="' + esc(o.key) + '" aria-expanded="' + open + '"><span class="pl">' + (cur ? '현재 · ' : '') +
+        esc(planName(o.label).replace(/^현재 · /, '')) + ' ' + (open ? '▴' : '▾') + '</span></button><span class="bn">' + esc(benefits(o.label) || '혜택 없음') + ' · ' + esc(bundleText(o)) + '</span>' +
+        (tags.length ? '<div class="tags">' + tags.join('') + '</div>' : '') + '</div>';
+      var discCell = Array.isArray(o.discount) && o.discount[1] ? '−' + fmt(r.disc) + '원' + (o.discount[0] !== o.discount[1] ? '<div class="note">범위 ' + fmt(o.discount[0]) + '~' + fmt(o.discount[1]) + '</div>' : '') : '−';
+      var tr = '<tr class="' + (cur ? 'cur ' : '') + 'opt" data-row="' + esc(o.key) + '"><td>' + name + '</td><td>' + won(o.fee) + '</td><td>' + (r.extra ? won(r.extra) : '−') +
+        (!r.dropOk ? '<div class="note">구독 내역 불일치</div>' : '') + '</td><td>' + discCell + '</td>' +
+        (s.W.selective ? '<td>' + (r.sel ? '−' + won(r.sel) : '−') + '</td>' : '') +
+        '<td class="final">' + won(r.final) + '</td><td>' + (cur ? '−' : delta(r.own)) + '</td><td>' + (cur ? '−' : delta(r.family)) + '</td></tr>';
+      if (open) tr += '<tr class="detail"><td colspan="' + cols + '">' + rowDetail(r, D) + '</td></tr>';
+      return tr;
+    }).join('');
+    return '<div class="otable-wrap"><table class="otable"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
+  }
+
+  function rowDetail(r, D) {
+    var o = r.o, b = o.bundle, cov = o.covered || [];
+    if (isCurrent(o) && !cov.length) cov = (D.services || []).filter(function (s) { return s.selected; }).map(function (s) { return s.name; })
+      .concat((D.conditional_services || []).map(function (s) { return s.name; }));
+    var unc = r.unc.map(function (u) { return '<li>' + esc(u.name) + ' <span class="num">' + won(u.won) + '</span>' + (r.dropOk && u.won && r.extra < (o.extra || 0) && isDropped(u.name) ? ' · 끊는 것으로 계산' : '') + '</li>'; }).join('');
+    var bl = b ? '<li>' + esc(bundleText(o)) + '</li><li>가족 할인 합계 월 <span class="num">' + fmt(b.family_total || 0) + '원</span> (모바일 ' + fmt(b.family_mobile || 0) + ' + 인터넷 ' + fmt(b.family_internet || 0) + ')</li>' +
+      (b.line && b.line.kind === 'BASE_TIE' ? '<li>기준 회선 동률: 본인이 기준 회선이면 할인이 커집니다 (나이 정보 없음)</li>' : '') +
+      (b.line && b.line.kind === 'POOL_SHARE' ? '<li>가족 할인을 회선별로 나눈 몫이라 범위로 나옵니다</li>' : '') : '<li>결합 없음</li>';
+    var calcLine = '월정액 ' + fmt(o.fee) + ' + 별도 구독 ' + fmt(r.extra) + ' − 결합 ' + fmt(r.disc) + (r.sel ? ' − 선택약정 ' + fmt(r.sel) : '') + ' = <strong>' + fmt(r.final) + '원</strong>';
+    return '<div class="dgrid"><div><span class="label">요금제에 포함</span><ul>' + (cov.length ? cov.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') : '<li>없음</li>') + '</ul></div>' +
+      '<div><span class="label">별도 구독 (정가)</span><ul>' + (unc || '<li>없음</li>') + '</ul></div>' +
+      '<div><span class="label">결합</span><ul>' + bl + '</ul></div>' +
+      '<div><span class="label">계산</span><p class="num" style="margin:2px 0 0">' + calcLine + '</p>' +
+      (o.settlement ? '<p class="note" style="margin:4px 0 0">월정액이 ' + fmt(o.settlement.fee_drop) + '원 낮아집니다. 공통지원금 약정(730일) 중이면 차액정산 대상일 수 있습니다 (금액은 데이터 없음).</p>' : '') + '</div></div>';
+  }
+  function isDropped(n) { var s = st(); return !!(s && s.W.drop[n]); }
+
+  function optionsFoot(secs) {
+    var lines = (secs['선택지'] || '').split('\n').filter(function (l) { return l.trim() && !/^\s*\|/.test(l); });
+    var assume = secs['주의점'] || '';
+    if (!lines.length && !assume) return '';
+    return '<details class="foot"><summary>계산 방법과 가정</summary><div class="md">' + md(lines.join('\n\n')) + (assume ? md(assume) : '') + '</div></details>';
+  }
+
+  /* ---------- 사용량 ---------- */
+  function usageView(D) {
+    var P = D.period || {}, months = P.months || [], h = '<div class="ugrid">';
+    h += '<div class="card"><h3>월별 총 데이터 사용량</h3><div class="sub">평균 ' + (P.typical_gb != null ? P.typical_gb + 'GB' : '−') + ' · 최대 ' + (P.peak_gb != null ? P.peak_gb + 'GB' : '−') +
+      (P.partial ? ' · ' + esc(P.partial.month) + '은 ' + P.partial.days + '일 ' + P.partial.gb + 'GB (월 환산 ' + P.partial.pace_gb + 'GB)로 분석 제외' : '') + '</div>' +
+      '<div class="chart">' + monthBars(months, P.typical_gb) + '</div></div>';
+    var cats = D.categories || [];
+    if (cats.length) {
+      var maxS = Math.max.apply(null, cats.map(function (x) { return x.share_pct; }));
+      h += '<div class="card"><h3>콘텐츠 분류별 월평균</h3><div class="sub">전체 사용량 중 비중</div><div class="hbars">' + cats.map(function (x) {
+        return '<div class="hb" data-tip="' + esc(x.label + ': 월평균 ' + x.avg_gb + 'GB · ' + x.share_pct + '%') + '"><span>' + esc(x.label) + '</span><div class="track"><div class="fill" style="width:' + (x.share_pct / maxS * 100).toFixed(1) + '%"></div></div>' +
+          '<span class="v">' + x.avg_gb + 'GB · ' + Math.round(x.share_pct) + '%</span></div>';
+      }).join('') + '</div></div>';
+    }
+    var sv = D.services || [];
+    if (sv.length) {
+      var inc = {};
+      D.options.forEach(function (o) { if (!isCurrent(o)) (o.covered || []).forEach(function (n) { (inc[n] = inc[n] || []).push(planName(o.label)); }); });
+      var STATUS = { SELECTED_USED: ['선택 · 사용', ''], SELECTED_NOT_USED: ['선택 · 사용 없음', 'warn'], NOT_SELECTED_USED: ['미선택 · 사용', ''], NOT_SELECTED_NOT_USED: ['미선택 · 사용 없음', ''] };
+      h += '<div class="card wide"><h3>서비스별 사용</h3><div class="sub">유료 서비스를 실제로 쓰는지와, 어느 선택지에 포함되는지</div><div class="table-wrap"><table class="stable"><thead><tr>' +
+        '<th>서비스</th><th class="l">현재</th><th>월평균</th><th>' + months.length + '개월 추이</th><th>정가</th><th class="l">포함된 선택지</th></tr></thead><tbody>' +
+        sv.map(function (x) {
+          var stt = STATUS[x.status] || [x.status, ''];
+          return '<tr><td><strong>' + esc(x.name) + '</strong>' + (x.access === 'FREEMIUM' ? ' <span class="note">무료 이용 가능</span>' : '') + '</td>' +
+            '<td class="l"><span class="st ' + stt[1] + '">' + (stt[1] === 'warn' ? '⚠ ' : '') + esc(stt[0]) + '</span></td>' +
+            '<td>' + x.avg_gb + 'GB</td><td>' + spark(x.monthly_gb || [], months, x.name) + '</td>' +
+            '<td>' + (x.list_price_won ? won(x.list_price_won) : '−') + '</td><td class="l wrap">' + esc((inc[x.name] || []).join(', ') || '−') + '</td></tr>';
+        }).join('') +
+        (D.conditional_services || []).map(function (x) { return '<tr><td><strong>' + esc(x.name) + '</strong></td><td class="l"><span class="st">선택</span></td><td colspan="3" class="l"><span class="note">' + esc(x.note || '') + '</span></td><td class="l wrap">' + esc((inc[x.name] || []).join(', ') || '−') + '</td></tr>'; }).join('') +
+        '</tbody></table></div></div>';
+    }
+    return h + '</div>';
+  }
+  function monthBars(months, avg) {
+    if (!months.length) return '<p class="note">월별 데이터가 없습니다</p>';
+    var W = 420, H = 200, L = 32, R = 6, T = 18, B = 22, iw = W - L - R, ih = H - T - B;
+    var max = Math.max.apply(null, months.map(function (m) { return m.gb; }).concat([avg || 0])) * 1.1 || 1;
+    var step = iw / months.length, bw = Math.min(40, step * 0.56), peak = Math.max.apply(null, months.map(function (m) { return m.gb; }));
+    function y(v) { return T + ih - v / max * ih; }
+    var g = '', ticks = [0, max / 2, max].map(function (v) { return Math.round(v / 10) * 10; });
+    ticks.forEach(function (v) { g += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text class="ax" x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + '</text>'; });
+    months.forEach(function (m, i) {
+      var x = L + step * i + (step - bw) / 2, top = y(m.gb), h = T + ih - top, r = Math.min(4, h);
+      g += '<path class="bar" data-tip="' + esc(m.month + ': ' + m.gb + 'GB') + '" d="M' + x + ',' + (T + ih) + 'V' + (top + r) + 'Q' + x + ',' + top + ' ' + (x + r) + ',' + top + 'H' + (x + bw - r) + 'Q' + (x + bw) + ',' + top + ' ' + (x + bw) + ',' + (top + r) + 'V' + (T + ih) + 'Z"/>';
+      g += '<text class="ax" x="' + (x + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle">' + Number(m.month.slice(5)) + '월</text>';
+      if (m.gb === peak) g += '<text class="val" x="' + (x + bw / 2) + '" y="' + (top - 5) + '" text-anchor="middle">' + m.gb + '</text>';
+    });
+    if (avg) g += '<line class="avg" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(avg) + '" y2="' + y(avg) + '"/><text class="ax" x="' + (W - R) + '" y="' + (y(avg) - 5) + '" text-anchor="end">평균 ' + avg + '</text>';
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="월별 사용량 GB: ' + esc(months.map(function (m) { return m.month + ' ' + m.gb; }).join(', ')) + '">' + g + '</svg>';
+  }
+  function spark(vals, months, name) {
+    var w = 120, h = 28, p = 3, max = Math.max.apply(null, vals.concat([0]));
+    var tipTxt = name + '\n' + vals.map(function (v, i) { return (months[i] ? months[i].month : i + 1) + ': ' + v + 'GB'; }).join('\n');
+    if (!vals.length) return '−';
+    if (!max) return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" data-tip="' + esc(tipTxt) + '" role="img" aria-label="사용 없음"><line class="zero" x1="' + p + '" x2="' + (w - p) + '" y1="' + (h - p) + '" y2="' + (h - p) + '"/></svg>';
+    var pts = vals.map(function (v, i) { return [(p + (w - 2 * p) * (vals.length === 1 ? 0.5 : i / (vals.length - 1))).toFixed(1), (h - p - (h - 2 * p) * v / max).toFixed(1)]; });
+    var last = pts[pts.length - 1];
+    return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" data-tip="' + esc(tipTxt) + '" role="img" aria-label="' + esc(tipTxt.replace(/\n/g, ', ')) + '"><polyline points="' + pts.map(function (q) { return q.join(','); }).join(' ') + '"/><circle cx="' + last[0] + '" cy="' + last[1] + '" r="3"/></svg>';
+  }
+
+  // 보고서 패널 조작 (탭, 가정, 행 펼치기, 검토 시작)
+  reportEl.addEventListener('click', function (e) {
+    var s = st(); if (!s) return;
+    var t;
+    if ((t = e.target.closest('[data-start]'))) { ask('이 고객의 요금제가 적정한지 검토해줘', 'review'); return; }
+    if ((t = e.target.closest('[data-tab]'))) { s.tab = t.dataset.tab; renderReport(); return; }
+    if ((t = e.target.closest('[data-w]'))) { if (t.disabled) return; s.W[t.dataset.w] = t.dataset.w === 'selective' ? t.dataset.v === 'true' : t.dataset.v; renderReport(); return; }
+    if (e.target.closest('[data-wreset]')) { s.W = defaultW(); renderReport(); return; }
+    if (e.target.closest('[data-notice]')) { s.noticeFull = !s.noticeFull; renderReport(); return; }
+    if ((t = e.target.closest('tr.opt[data-row], .oname [data-row]'))) { var k = t.dataset.row; s.open[k] = !s.open[k]; renderReport(); }
+  });
+  reportEl.addEventListener('change', function (e) {
+    var s = st(), t = e.target.closest('[data-keep]');
+    if (s && t) { s.W.drop[t.dataset.keep] = !t.checked; renderReport(); }
+  });
+  // 차트 툴팁
+  document.addEventListener('mouseover', function (e) {
+    var t = e.target.closest && e.target.closest('[data-tip]');
+    if (!t) { tip.hidden = true; return; }
+    tip.textContent = t.getAttribute('data-tip'); tip.hidden = false;
+  });
+  document.addEventListener('mousemove', function (e) {
+    if (tip.hidden) return;
+    var x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8), y = e.clientY + 16;
+    if (y + tip.offsetHeight > window.innerHeight - 8) y = e.clientY - tip.offsetHeight - 10;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  });
+
   /* ---------- 고객 ID 입력 ---------- */
-  var saved = {};   // 고객별 화면 내용
   function guide() {
-    return '**1.** 위에 고객 ID를 입력하고 **확인**을 누르거나, 후보 고객 카드를 고르세요. (예: `U00603`)\n\n**2.** 분석할 기간(1·3·6·12개월 또는 날짜)을 정하세요.\n\n**3.** 질문을 입력하면 분석이 시작됩니다.';
+    return '**1.** 왼쪽에 고객 ID를 입력하고 **확인**을 누르거나, 후보 고객을 고르세요. (예: `U00603`)\n\n**2.** 분석 기간(1·3·6·12개월 또는 날짜)을 정하세요.\n\n**3.** 검토를 시작하면 보고서가 가운데에 열리고, 여기서는 그 보고서에 대해 질문합니다.';
   }
   function reset() {
-    if (curCtrl) { curCtrl.abort(); curCtrl = null; }
+    if (curCtrl) { curCtrl.abort(); curCtrl = null; busy = false; }
     feed.innerHTML = '';
     if (!user) {
       add(aiRow(aiText(guide())));
     } else {
-      convs[user] = newId();
+      S[user] = fresh();
       var u = info(user);
-      var row = add(aiRow(aiText('**' + (u ? u.name + '** (' + user + ')' : user + '**') + ' 고객을 선택했습니다. 분석 기간을 확인한 뒤 무엇을 분석할지 입력하거나 아래 질문을 고르세요.')));
+      var row = add(aiRow(aiText('**' + (u ? u.name + '** (' + user + ')' : user + '**') + ' 고객의 새 상담입니다. 분석 기간을 확인한 뒤 검토를 시작하거나 아래 질문을 고르세요.')));
       row.insertAdjacentHTML('beforeend', chips(starters(u)));
     }
+    renderReport();
+    setView('report');
     lock(false);
   }
   function setIdNote(text, kind) {
     idNote.textContent = text;
-    idNote.className = 'idnote' + (kind ? ' ' + kind : '');
+    idNote.className = 'note' + (kind ? ' ' + kind : '');
     idIn.setAttribute('aria-invalid', kind === 'bad' ? 'true' : 'false');
   }
   function confirmId() {
@@ -637,73 +1061,59 @@ thead th { font-weight: 700; }
     if (!id) { setIdNote('고객 ID를 입력하세요', 'bad'); idIn.focus(); return; }
     if (!CONFIG.idPattern.test(id)) { setIdNote('형식이 맞지 않습니다. U와 숫자 5자리로 입력하세요 (예: U00603)', 'bad'); idIn.focus(); return; }
     if (id === user) { setIdNote('이미 선택된 고객입니다', 'ok'); return; }
-    if (user) saved[user] = feed.innerHTML;     // 이전 고객 대화는 보관했다가, 다시 입력하면 복원합니다
+    if (user && S[user]) { S[user].feed = feed.innerHTML; S[user].from = fromIn.value; S[user].to = toIn.value; }   // 이전 고객 상담은 보관했다가 다시 고르면 복원합니다
     user = id;
     showUser();
-    applyEnabled();
-    if (saved[user]) { feed.innerHTML = saved[user]; scrollDown(); lock(false); }
-    else reset();
-    setIdNote('확인됨 · 이제 분석 기간(개월 수)을 정하세요', 'ok');
-    var on = presets.querySelector('[aria-pressed="true"]') || presets.querySelector('[data-months]');
-    if (on) on.focus();
+    $('#cands').open = false;
+    if (S[user]) {
+      feed.innerHTML = S[user].feed;
+      if (S[user].from) { fromIn.value = S[user].from; toIn.value = S[user].to; }
+      scrollDown(); renderReport(); lock(false);
+    } else reset();
+    setIdNote('확인됨 · 분석 기간을 확인하고 검토를 시작하세요', 'ok');
   }
   idForm.addEventListener('submit', function (e) { e.preventDefault(); confirmId(); });
   idIn.addEventListener('input', function () {
     var v = idIn.value.trim().toUpperCase();
     if (user && v !== user) setIdNote('확인 버튼을 눌러야 ' + (v || '새 ID') + '(으)로 바뀝니다', '');
-    else if (user) setIdNote('확인됨 · 이제 분석 기간(개월 수)을 정하세요', 'ok');
-    else setIdNote('고객 ID를 입력하거나 아래 후보 고객을 고르세요', '');
+    else if (user) setIdNote('확인됨 · 분석 기간을 확인하고 검토를 시작하세요', 'ok');
+    else setIdNote('고객 ID를 입력하거나 후보 고객을 고르세요', '');
   });
 
   picker.insertAdjacentHTML('beforeend', CONFIG.users.map(function (u) {
     return '<label class="pick"><input type="radio" name="cust" value="' + esc(u.id) + '">' +
       '<span class="nm">' + esc(u.name) + '<small>' + esc(u.id) + '</small></span>' +
-      '<span class="rate">' + esc(u.plan) + ' · ' + won(u.fee) + '</span>' +
+      '<span class="rate">' + esc(u.plan) + ' · 월 ' + won(u.fee) + '</span>' +
       '<span class="why">' + esc(u.reason) + '</span></label>';
   }).join(''));
-  // 카드를 고르면 ID 칸을 채우고 바로 확인합니다
   picker.addEventListener('change', function (e) { idIn.value = e.target.value; confirmId(); });
 
+  // 왼쪽 사전 정보: 분석 전에 알고 있는 값만 보여 줍니다 (분석 결과는 가운데 패널)
   function showUser() {
-    var u = info(user);
+    var u = info(user), kv = $('#custKv');
+    function row(k, v) { return '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>'; }
     if (!user) {
-      $('#custName').textContent = '고객 ID 미입력';
+      $('#custName').textContent = '고객 미선택';
       $('#custMeta').textContent = '고객 ID를 확인하면 표시됩니다';
-      $('#custPlan').textContent = '-';
-      $('#custPrice').textContent = '';
-      $('#custSvc').textContent = '-';
-      $('#custUsage').textContent = '-';
-      $('#custMob').textContent = '고객 ID 미입력';
+      kv.innerHTML = ''; $('#custNote').textContent = '';
     } else if (u) {
       $('#custName').textContent = u.name;
       $('#custMeta').textContent = u.id + ' · ' + u.meta;
-      $('#custPlan').textContent = u.plan;
-      $('#custPrice').textContent = won(u.fee) + ' · ' + u.data;
-      $('#custSvc').textContent = u.services.length ? u.services.join(' · ') : '없음';
-      $('#custUsage').textContent = u.avgGb + 'GB (2026-04~09)';
-      $('#custMob').textContent = u.name + ' · ' + u.plan;
+      kv.innerHTML = row('현재 요금제', u.plan) + row('월정액', won(u.fee)) + row('데이터', u.data) +
+        row('선택 혜택', u.services.length ? u.services.join(', ') : '없음') + row('월평균 사용', u.avgGb + 'GB');
+      $('#custNote').textContent = '2026-10-02 조회값 · 월평균은 2026-04~09 기준. 분석 결과는 가운데 보고서를 보세요.';
     } else {
       $('#custName').textContent = user;
-      $('#custMeta').textContent = '화면에 준비된 정보가 없는 고객입니다';
-      $('#custPlan').textContent = '분석 답변에서 확인';
-      $('#custPrice').textContent = '';
-      $('#custSvc').textContent = '분석 답변에서 확인';
-      $('#custUsage').textContent = '분석 답변에서 확인';
-      $('#custMob').textContent = user;
+      $('#custMeta').textContent = '화면에 준비된 사전 정보가 없는 고객입니다';
+      kv.innerHTML = ''; $('#custNote').textContent = '요금제와 사용량은 검토 보고서에서 확인하세요.';
     }
   }
-  showUser();
-  // 넓은 화면에서는 고객 정보를 항상 펼치고, 좁은 화면에서는 접어 둡니다
-  var custEl = $('#cust'), wide = window.matchMedia('(min-width: 861px)');
-  function syncInfo() { custEl.open = wide.matches; }
-  if (wide.addEventListener) wide.addEventListener('change', syncInfo);
-  syncInfo();
 
   /* ---------- 분석 기간 ---------- */
   function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function minusMonths(s, n) {
     var p = s.split('-').map(Number), m = p[1] - 1 - n;
-    var last = new Date(p[0], m + 1, 0).getDate();   // 3/31에서 1개월 전은 2/28(29)로 맞춥니다
+    var last = new Date(p[0], m + 1, 0).getDate();
     return iso(new Date(p[0], m, Math.min(p[2], last)));
   }
   var today = iso(new Date());
@@ -715,22 +1125,23 @@ thead th { font-weight: 700; }
       var on = toIn.value === today && fromIn.value === presetStart(Number(b.dataset.months));
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    var ok = fromIn.checkValidity() && toIn.checkValidity();
-    periodNote.textContent = !ok ? CONFIG.dataStart + ' ~ ' + today + ' 사이에서 시작일이 종료일보다 앞서야 합니다'
+    var s = st(), ok = fromIn.checkValidity() && toIn.checkValidity();
+    periodNote.className = 'note';
+    periodNote.textContent = s && (s.report || s.loading) ? '이 상담의 분석 기간입니다. 다른 기간은 새 대화에서 분석합니다'
+      : !ok ? CONFIG.dataStart + ' ~ ' + today + ' 사이에서 시작일이 종료일보다 앞서야 합니다'
       : fromIn.value === CONFIG.dataStart ? CONFIG.dataStart + '부터 데이터가 있습니다' : '';
   }
-  function setMonths(n) { toIn.value = today; fromIn.value = presetStart(n); syncPeriod(); }
+  function setMonths(n) { toIn.value = today; fromIn.value = presetStart(n); syncPeriod(); if (st() && !st().report) renderReport(); }
   fromIn.min = toIn.min = CONFIG.dataStart;
   fromIn.max = toIn.max = today;
   presets.addEventListener('click', function (e) { var b = e.target.closest('[data-months]'); if (b && !b.disabled) setMonths(Number(b.dataset.months)); });
-  fromIn.addEventListener('input', syncPeriod);
-  toIn.addEventListener('input', syncPeriod);
+  fromIn.addEventListener('input', function () { syncPeriod(); if (st() && !st().report) renderReport(); });
+  toIn.addEventListener('input', function () { syncPeriod(); if (st() && !st().report) renderReport(); });
   setMonths(CONFIG.defaultMonths);
 
   var ops = $('#ops');
   if (CONFIG.opsUrl) {
     ops.disabled = false;
-    // 같은 탭에서 오갑니다. 상담 내용은 이 페이지를 떠나면 사라집니다
     ops.addEventListener('click', function () { location.href = CONFIG.opsUrl; });
   }
 
@@ -740,19 +1151,14 @@ thead th { font-weight: 700; }
     send(t, intent);
   }
   form.addEventListener('submit', function (e) { e.preventDefault(); ask(msg.value.trim()); });
-  // 추천 질문 버튼 (저장했다 복원한 대화에서도 동작하도록 feed에서 받습니다)
   feed.addEventListener('click', function (e) { var c = e.target.closest('.chip'); if (c) ask(c.dataset.q, c.dataset.intent); });
   msg.addEventListener('keydown', function (e) {
-    // 한글 조합 중 Enter는 무시해야 마지막 글자가 두 번 전송되지 않습니다
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
-      e.preventDefault();
-      form.requestSubmit();
-    }
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); form.requestSubmit(); }
   });
   msg.addEventListener('input', fit);
   $('#reset').addEventListener('click', reset);
 
-  applyEnabled();
+  showUser();
   reset();
   idIn.focus();
 })();
