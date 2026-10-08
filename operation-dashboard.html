@@ -106,7 +106,7 @@
     <main class="wrap">
         <header>
             <h1>고객 운영 대시보드</h1>
-            <p class="lede">기간 필터는 월별·콘텐츠·분포 분석에 적용합니다. 가입자·가족·요금제 비교는 전체 기간 기준으로 고정합니다.</p>
+            <p class="lede">기간 필터는 요금제 비교·콘텐츠·분포·월별 분석에 적용합니다. 가입자·가족 분석은 현재 스냅샷 기준입니다.</p>
         </header>
         <input id="webhook-url" type="hidden">
         <form id="global-filter-form" class="filters global-filters" aria-label="공통 조회 기간">
@@ -116,7 +116,7 @@
             <span id="global-status" class="status" role="status">기간 데이터를 불러옵니다.</span>
         </form>
         <div id="analysis-sections" class="grid"></div>
-        <footer>사용량은 1,024MB = 1GB 기준입니다. 가입자·가족·요금제 비교는 상단 기간 설정의 영향을 받지 않습니다.</footer>
+        <footer>사용량은 1,024MB = 1GB 기준입니다. 가입자·가족 분석은 상단 기간 설정의 영향을 받지 않습니다.</footer>
     </main>
     <div id="analysis-tip" role="tooltip" hidden></div>
     <script id="operations-analysis-contracts">
@@ -483,8 +483,6 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
     'use strict';
 
     const DEFAULT_ENDPOINT = 'https://yuno-da.app.n8n.cloud/webhook/bb80624e-76fd-48c7-bafa-ef35769e412c';
-    const FULL_PERIOD_START = '2026-01-01';
-    const FULL_PERIOD_END_EXCLUSIVE = '2026-10-01';
     const FIXED_AS_OF_DATE = '2026-09-30';
     const AGE_ORDER = ['8-12', '13-18', '19-24', '25-34', '35-49', '50-64', '65+'];
     const COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)', 'var(--s0)'];
@@ -594,15 +592,16 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
         },
         {
             key: 'plans', query_id: 'OPS_ANALYSIS_003', wide: true, renderer: 'plans',
-            controls: [], fixedPeriod: true,
-            bindings: {
-                start_date: fixedBinding(FULL_PERIOD_START),
-                end_date_exclusive: fixedBinding(FULL_PERIOD_END_EXCLUSIVE),
-                as_of_date: fixedBinding(FIXED_AS_OF_DATE)
+            controls: [],
+            bindings: { ...rangeBindings, as_of_date: fixedBinding(FIXED_AS_OF_DATE) },
+            chart_columns: ['plan_id', 'plan_name', 'subscriber_count', 'average_usage_per_subscriber_gb', 'data_limit_gb', 'is_unlimited', 'base_allowance_usage_pct'],
+            display_columns: {
+                total_usage_gb: { label: '기간 총사용량', description: '선택 기간의 월별 요금제 사용량 합계' },
+                average_usage_per_subscriber_gb: { label: '기간 내 가입자당 월평균', description: '선택 기간 중 사용량 기록이 있는 월의 가입자당 사용량 평균' },
+                base_allowance_usage_pct: { description: '선택 기간의 가입자당 월평균 사용량을 월 기본 제공량으로 나눈 비율' }
             },
-            chart_columns: ['calendar_month', 'plan_id', 'plan_name', 'subscriber_count', 'average_usage_per_subscriber_gb', 'data_limit_gb', 'is_unlimited', 'base_allowance_usage_pct'],
-            description: '요금제별 가입자당 월평균 사용량과 기본 데이터 제공량을 비교합니다. 기간 설정 미적용 · 전체 데이터 기간 2026-01~2026-09, 가입자 기준일 2026-09-30입니다.',
-            note: '기간 전체에 같은 가입자 스냅샷을 사용합니다. 연령·공유·이월 혜택은 기본 제공량에 포함하지 않습니다.'
+            description: '선택한 조회 기간 전체를 요금제당 한 행으로 집계해 가입자당 월평균 사용량과 월 기본 제공량을 비교합니다.',
+            note: '월평균은 사용량 기록이 있는 월 기준이며 기록 없는 월은 제외합니다. 가입자 수는 기준일 2026-09-30의 스냅샷으로 월마다 중복 합산하지 않습니다. 연령·공유·이월 혜택은 기본 제공량에 포함하지 않습니다.'
         },
         {
             key: 'content', query_id: 'OPS_ANALYSIS_004', wide: true, renderer: 'content',
@@ -617,8 +616,14 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
             controls: [],
             bindings: { ...rangeBindings },
             chart_columns: ['result_type', 'group_label', 'customer_count', 'customer_share_pct', 'total_usage_gb', 'usage_share_pct'],
-            description: '선택 기간의 사용량 구간별 고객 분포를 막대로 표시하고, 상위 1%·10% 고객의 사용량 점유율을 같은 그래프에서 비교합니다.',
-            note: '집중도 곡선은 상위 1%·10%의 제공된 지점만 연결합니다. 가로축은 올림 후 실제 고객 비중이며 다른 구간을 추정하지 않습니다. 두 집중도 값을 합산하지 않습니다.'
+            display_columns: {
+                customer_count: { label: '고객 연인원', unit: '명·월', description: '선택 기간의 월별 고객 수 합계. 같은 고객이 여러 월에 중복 포함될 수 있음' },
+                customer_share_pct: { label: '연인원 비중', description: '선택 기간의 전체 고객 연인원 대비 해당 그룹 연인원의 비율' },
+                total_usage_gb: { label: '기간 총사용량', description: '선택 기간의 해당 그룹 월별 사용량 합계' },
+                usage_share_pct: { description: '선택 기간의 전체 사용량 대비 해당 그룹 사용량 합계의 비율' }
+            },
+            description: '선택한 조회 기간 전체의 월별 결과를 사용량 구간·상위 고객군별로 합산하고, 합계에서 비중을 다시 계산합니다.',
+            note: '고객 수는 월별 고객 수를 합산한 연인원입니다. 구간은 고객별 월사용량 기준이며 상위 1%·10%는 각 월에서 선정한 고객군의 기간 합계입니다. 기간 누적 사용량으로 고객을 재분류하거나 순위를 다시 계산한 결과는 아닙니다. 상위 1%는 상위 10%에 포함됩니다.'
         },
         {
             key: 'families', query_id: 'OPS_ANALYSIS_006', renderer: 'families',
@@ -631,7 +636,8 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
         ...section,
         table_id: section.key + '-table',
         table_columns: contracts[section.query_id].output.map(column => column.name),
-        visible_table_columns: contracts[section.query_id].output.filter(column => !['as_of_date', 'plan_id'].includes(column.name)).map(column => column.name)
+        visible_table_columns: contracts[section.query_id].output.filter(column => !['as_of_date', 'plan_id'].includes(column.name)
+            && !(column.name === 'calendar_month' && ['plans', 'distribution'].includes(section.key))).map(column => column.name)
     }));
 
     function getSection(key) {
@@ -767,31 +773,33 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
         const groups = new Map();
         rows.forEach(row => {
             if (!groups.has(row.plan_id)) groups.set(row.plan_id, {
-                ...row, total_usage_gb: 0, averageSum: 0, averageCount: 0, allowanceSum: 0, allowanceCount: 0
+                ...row, total_usage_gb: null, averageSum: 0, averageCount: 0
             });
             const group = groups.get(row.plan_id);
-            group.total_usage_gb += row.total_usage_gb || 0;
+            if (row.total_usage_gb !== null) group.total_usage_gb = (group.total_usage_gb || 0) + row.total_usage_gb;
             group.subscriber_count = Math.max(group.subscriber_count || 0, row.subscriber_count || 0);
             if (row.average_usage_per_subscriber_gb !== null) {
                 group.averageSum += row.average_usage_per_subscriber_gb;
                 group.averageCount += 1;
             }
-            if (row.base_allowance_usage_pct !== null) {
-                group.allowanceSum += row.base_allowance_usage_pct;
-                group.allowanceCount += 1;
-            }
         });
-        return [...groups.values()].map(group => ({
-            ...group,
-            average_usage_per_subscriber_gb: group.averageCount ? group.averageSum / group.averageCount : null,
-            base_allowance_usage_pct: group.allowanceCount ? group.allowanceSum / group.allowanceCount : null
-        })).sort(comparePlans);
+        return [...groups.values()].map(group => {
+            const { calendar_month, averageSum, averageCount, ...result } = group;
+            result.average_usage_per_subscriber_gb = averageCount ? averageSum / averageCount : null;
+            result.base_allowance_usage_pct = !result.is_unlimited && result.data_limit_gb > 0
+                && result.average_usage_per_subscriber_gb !== null
+                ? result.average_usage_per_subscriber_gb / result.data_limit_gb * 100 : null;
+            return result;
+        }).sort(comparePlans);
     }
     function aggregateDistribution(rows) {
         const groups = new Map();
         rows.forEach(row => {
             const key = row.result_type + '|' + row.group_label;
-            if (!groups.has(key)) groups.set(key, { ...row, customer_count: 0, total_usage_gb: 0 });
+            if (!groups.has(key)) {
+                const { calendar_month, ...result } = row;
+                groups.set(key, { ...result, customer_count: 0, total_usage_gb: 0 });
+            }
             const group = groups.get(key);
             group.customer_count += row.customer_count || 0;
             group.total_usage_gb += row.total_usage_gb || 0;
@@ -807,7 +815,7 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
         return result;
     }
     function filterRowsForDisplay(sectionKey, rows, selection) {
-        if (['subscribers', 'families', 'plans'].includes(sectionKey)) return rows;
+        if (['subscribers', 'families'].includes(sectionKey)) return rows;
         const start = monthStart(selection.startMonth);
         const endExclusive = nextMonth(selection.endMonth);
         return rows.filter(row => row.calendar_month >= start && row.calendar_month < endExclusive);
@@ -1019,7 +1027,7 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
                 }
                 const hit = svgNode('rect', { x, y: top, width: columnWidth, height: plotHeight, fill: 'transparent' }, group);
                 attachTip(hit, () => ({ title: row.plan_name, rows: [
-                    { label: '가입자당 평균', value: average === null ? '—' : number(average, 1) + 'GB' },
+                    { label: '기간 내 가입자당 월평균', value: average === null ? '—' : number(average, 1) + 'GB' },
                     { label: '기본 제공량', value: row.is_unlimited ? '무제한' : base === null ? '정보 없음' : number(base) + 'GB' },
                     { label: '가입자', value: number(row.subscriber_count, 0) + '명' },
                     { label: '기본 제공량 대비', value: row.base_allowance_usage_pct === null ? '—' : number(row.base_allowance_usage_pct, 1) + '%' }
@@ -1028,7 +1036,7 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
             if (display.n) text(svg, left - 8, top + plotHeight + 14, 'n', 'end');
             planLabels(svg, rows, left, columnWidth, top + plotHeight + 4 + nRow, true);
             const guide = el('div', undefined, 'legend');
-            [['기본 제공량', 'var(--comparison-gray)'], ['가입자당 평균사용량', 'var(--comparison-blue)'], ['평균이 기본 제공량보다 높음 ▲', 'var(--serious)']].forEach(([name, color]) => {
+            [['기본 제공량', 'var(--comparison-gray)'], ['기간 내 가입자당 월평균', 'var(--comparison-blue)'], ['평균이 기본 제공량보다 높음 ▲', 'var(--serious)']].forEach(([name, color]) => {
                 const item = el('span'), swatch = el('i', undefined, 'swatch'); swatch.style.background = color; item.append(swatch, doc.createTextNode(name)); guide.append(item);
             });
             const notes = ['흐리게 = 가입자 10명 미만', '∞ = 무제한'];
@@ -1145,14 +1153,14 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
 
             const top1 = concentration.get('top_1_pct');
             const top10 = concentration.get('top_10_pct');
-            text(svg, left, 18, '사용량 구간별 고객 수', 'start', 'var(--ink2)', true);
+            text(svg, left, 18, '월사용량 구간별 고객 연인원', 'start', 'var(--ink2)', true);
 
             for (let tick = 0; tick <= 4; tick++) {
                 const value = max * tick / 4;
                 svgNode('line', { x1: left, x2: distributionRight, y1: y(value), y2: y(value), stroke: value ? 'var(--grid)' : 'var(--axis)' }, svg);
                 text(svg, left - 8, y(value) + 4, number(value, 0), 'end');
             }
-            text(svg, left - 8, top - 10, '고객 수(명)', 'end');
+            text(svg, left - 8, top - 10, '연인원(명·월)', 'end');
 
             distribution.forEach((row, index) => {
                 const x0 = left + index * columnWidth;
@@ -1165,16 +1173,16 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
                 text(svg, center, y(row.customer_count) - 7, number(row.customer_count, 0), 'middle', 'var(--ink2)', true);
                 text(svg, center, top + plotHeight + 21, (GROUP_LABELS[row.group_label] || row.group_label).replace(' 미만', ''), 'middle', 'var(--ink2)');
                 attachTip(bar, () => ({ title: GROUP_LABELS[row.group_label] || row.group_label, rows: [
-                    { label: '고객 수', value: number(row.customer_count, 0) + '명' },
-                    { label: '고객 비중', value: row.customer_share_pct === null ? '—' : number(row.customer_share_pct) + '%' },
+                    { label: '고객 연인원', value: number(row.customer_count, 0) + '명·월' },
+                    { label: '연인원 비중', value: row.customer_share_pct === null ? '—' : number(row.customer_share_pct) + '%' },
                     { label: '사용량', value: number(row.total_usage_gb) + 'GB' }
                 ] }));
             });
-            text(svg, left + distributionWidth / 2, top + plotHeight + 48, '기간별 사용량 구간', 'middle', 'var(--ink2)');
+            text(svg, left + distributionWidth / 2, top + plotHeight + 48, '월사용량 구간 · 조회 기간 합산', 'middle', 'var(--ink2)');
 
             const summaryX = distributionRight + gap;
             svgNode('line', { x1: distributionRight + gap / 2, x2: distributionRight + gap / 2, y1: top - 22, y2: top + plotHeight, stroke: 'var(--grid)' }, svg);
-            text(svg, summaryX, 18, '상위 고객 사용량 점유율', 'start', 'var(--ink2)', true);
+            text(svg, summaryX, 18, '월별 상위 고객군 · 기간 점유율', 'start', 'var(--ink2)', true);
             const concentrationKpi = (row, label, color, centerY) => {
                 const share = row?.usage_share_pct;
                 const centerX = summaryX + summaryWidth / 2;
@@ -1183,7 +1191,7 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
                 const value = text(group, centerX, centerY + 22,
                     share === null || share === undefined ? '—' : number(share, 1) + '%', 'middle', color, true);
                 value.style.fontSize = '30px';
-                const detail = row ? 'n=' + number(row.customer_count, 0) + '명 · 합계 ' + number(row.total_usage_gb, 0) + 'GB' : '집계 행 없음';
+                const detail = row ? 'n=' + number(row.customer_count, 0) + '명·월 · 합계 ' + number(row.total_usage_gb, 0) + 'GB' : '집계 행 없음';
                 text(group, centerX, centerY + 42, detail, 'middle', 'var(--ink2)');
             };
             concentrationKpi(top1, '상위 1%', 'var(--s2)', top + 50);
@@ -1237,9 +1245,11 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
             table.replaceChildren();
             const caption = el('caption', contracts[state.section.query_id].query_name + ' · 조회 결과');
             const head = el('thead'), header = el('tr'), body = el('tbody');
-            const columns = contracts[state.section.query_id].output.filter(column => state.section.visible_table_columns.includes(column.name));
+            const columns = contracts[state.section.query_id].output
+                .filter(column => state.section.visible_table_columns.includes(column.name))
+                .map(column => ({ ...column, ...state.section.display_columns?.[column.name] }));
             columns.forEach(column => {
-                const cell = el('th', (LABELS[column.name] || column.name) + (column.unit ? ' (' + column.unit + ')' : ''));
+                const cell = el('th', (column.label || LABELS[column.name] || column.name) + (column.unit ? ' (' + column.unit + ')' : ''));
                 cell.scope = 'col';
                 cell.dataset.column = column.name;
                 cell.title = column.name + ' · ' + column.description;
@@ -1376,7 +1386,8 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
             if (key === 'distribution') rows = aggregateDistribution(rows);
             state.context.textContent = key === 'subscribers'
                 ? '전체 기간 기준 · 기간 설정 미적용 · 가입자 기준일 ' + FIXED_AS_OF_DATE
-                : ['families', 'plans'].includes(key) ? '' : '조회 기간: ' + periodLabel(selection);
+                : key === 'families' ? '' : '조회 기간: ' + periodLabel(selection)
+                    + (key === 'plans' ? ' · 가입자 기준일 ' + FIXED_AS_OF_DATE : '');
             if (state.loaded) {
                 state.status.className = 'status';
                 state.status.textContent = '';
@@ -1501,6 +1512,7 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
                 toggle.setAttribute('aria-pressed', String(showTable));
             });
             card.append(heading, context, status, localFilters, visuals, tableWrap);
+            if (['plans', 'distribution'].includes(section.key)) card.append(el('p', section.note, 'note'));
             doc.getElementById('analysis-sections').append(card);
             render(state);
             if (typeof ResizeObserver !== 'undefined') {
