@@ -1,1212 +1,1407 @@
-<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>고객 운영 대시보드</title>
-<style>
-/* Layout: 필터 바 → KPI 4칸 → 4개 행(가입·결합 / 사용 패턴 / 평균과 적합성). 중립 회색 바탕에 파랑 단일 강조, 카테고리는 검증된 팔레트 순서 */
-:root{
-  --bg:#f6f5f2; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#6e6c66;
-  --grid:#e1e0d9; --axis:#c3c2b7; --line:rgba(11,11,11,.10); --wash:#f0efec; --sel:rgba(42,120,214,.08);
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s0:#a8a69e; --o2:#86b6ef;
-  --serious:#ec835a; --track:#cde2fb; --empty:#efeeea;
-  --q1:#cde2fb; --q2:#9ec5f4; --q3:#6da7ec; --q4:#3987e5; --q5:#256abf; --q6:#184f95; --q7:#0d366b;
-  --qt1:#0b0b0b; --qt2:#0b0b0b; --qt3:#0b0b0b; --qt4:#0b0b0b; --qt5:#ffffff; --qt6:#ffffff; --qt7:#ffffff;
-  --bt1:#ffffff; --bt2:#0b0b0b; --bt3:#0b0b0b; --bt4:#0b0b0b; --bt5:#0b0b0b; --bt6:#0b0b0b;
-  --dt1:#ffffff; --dt2:#0b0b0b; --dt3:#0b0b0b;
-  --font:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#a3a29a;
-    --grid:#2c2c2a; --axis:#383835; --line:rgba(255,255,255,.10); --wash:#232321; --sel:rgba(57,135,229,.16);
-    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s0:#6b6a64; --o2:#184f95;
-    --serious:#ec835a; --track:#223a5c; --empty:#222220;
-    --q1:#1f3047; --q2:#23486f; --q3:#1c5cab; --q4:#2a78d6; --q5:#3987e5; --q6:#6da7ec; --q7:#9ec5f4;
-    --qt1:#ffffff; --qt2:#ffffff; --qt3:#ffffff; --qt4:#ffffff; --qt5:#0b0b0b; --qt6:#0b0b0b; --qt7:#0b0b0b;
-    --bt1:#0b0b0b; --bt2:#0b0b0b; --bt3:#0b0b0b; --bt4:#0b0b0b; --bt5:#0b0b0b; --bt6:#ffffff;
-    --dt1:#0b0b0b; --dt2:#ffffff; --dt3:#ffffff;
-    color-scheme:dark;
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>고객 운영 대시보드 · 분석 카탈로그</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f1f2f4; --surface: #ffffff; --ink: #15171c;
+            --ink2: #5b6270; --muted: #7d8490; --grid: #e7e9ed;
+            --axis: #cfd3da; --line: #dde0e6; --wash: #f6f7f9;
+            --accent: #e4002b; --accent-hover: #c90027;
+            --s1: #b64f64; --s2: #c06a4f; --s3: #3f9478;
+            --s4: #b58a35; --s5: #8b65a4; --s0: #9da3ad; --track: #ead5da;
+            --serious: #c94e48; --empty: #f0f1f3; --sel: rgba(228,0,43,.07);
+            --o2: #5f8fa3; --dt1: #fff; --dt2: #15171c; --dt3: #15171c;
+            --comparison-gray: #c4c9d0; --comparison-blue: #397fae; --comparison-green: #3f9472;
+            --q1: #f5e2e7; --q2: #eec3cd; --q3: #df9eae; --q4: #ce748a; --q5: #b9506b; --q6: #9f3854; --q7: #812b44;
+            --qt1: #15171c; --qt2: #15171c; --qt3: #15171c; --qt4: #15171c; --qt5: #fff; --qt6: #fff; --qt7: #fff;
+            --bt1: #fff; --bt2: #15171c; --bt3: #15171c; --bt4: #15171c; --bt5: #15171c; --bt6: #15171c;
+            --font: "Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.55 var(--font); }
+        .wrap { max-width: 1440px; margin: 0 auto; padding: 0 20px 40px; display: flex; flex-direction: column; gap: 16px; }
+        header { margin: 0 -20px; padding: 15px 20px 14px; background: var(--surface); border-bottom: 1px solid var(--line); }
+        h1 { margin: 0; font-size: 21px; line-height: 1.35; font-weight: 700; letter-spacing: -.025em; }
+        h1::before { content: "KT"; display: inline-block; margin-right: 9px; color: var(--accent); font-weight: 800; letter-spacing: -.04em; }
+        .lede { margin: 5px 0 0; color: var(--ink2); font-size: 12.5px; }
+        .connection { padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+        .connection summary { cursor: pointer; font-size: 13px; }
+        .connection label { display: block; margin-top: 12px; }
+        .connection input { width: 100%; margin-top: 5px; }
+        .grid { display: grid; grid-template-columns: repeat(12,minmax(0,1fr)); gap: 14px; }
+        .card { grid-column: span 6; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; min-width: 0; }
+        .card.wide { grid-column: span 12; }
+        #subscribers-section { grid-column: span 8; }
+        #families-section { grid-column: span 4; }
+        #plans-section, #monthly-section { grid-column: span 12; }
+        .hd { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+        h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.018em; }
+        .description { margin: 4px 0 0; font-size: 12.5px; color: var(--ink2); max-width: 76ch; }
+        .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+        .filters, .local-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; padding: 13px 0; }
+        .local-filters:empty { display: none; }
+        .global-filters { position: sticky; top: env(safe-area-inset-top,0px); z-index: 20; margin: 0 -20px; padding: 12px 20px; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--line); backdrop-filter: blur(8px); }
+        label { font-size: 12px; color: var(--ink2); font-weight: 500; }
+        label input, label select { display: block; margin-top: 4px; }
+        input, select, button { font: inherit; font-size: 12px; min-height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--wash); color: var(--ink); padding: 7px 11px; }
+        button { cursor: pointer; background: var(--surface); font-weight: 600; }
+        button:hover { background: var(--wash); border-color: var(--axis); }
+        button.primary { background: var(--accent); border-color: var(--accent); color: #fff; padding-inline: 18px; }
+        button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+        button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+        button:disabled, select:disabled { cursor: default; opacity: .55; }
+        :focus-visible { outline: 2px solid rgba(228,0,43,.45); outline-offset: 2px; }
+        .status, .context, .note { font-size: 12px; color: var(--muted); margin: 5px 0; }
+        .status.error { color: var(--s2); }
+        .context { color: var(--ink2); }
+        .context:empty { display: none; }
+        .card[aria-busy="true"] .visuals { opacity: .55; }
+        .visuals { display: grid; gap: 16px; }
+        .visuals.dual { grid-template-columns: repeat(2,minmax(0,1fr)); }
+        .chart-block { min-width: 0; }
+        .chart-title { font-size: 13px; font-weight: 700; margin: 8px 0; }
+        .plot { overflow-x: auto; min-width: 0; }
+        .plot svg { display: block; }
+        .plot svg text { font: 11px var(--font); }
+        .ramp { display: inline-flex; gap: 2px; }
+        .ramp i { width: 16px; height: 10px; display: inline-block; border-radius: 2px; }
+        .family-matrix { display: grid; grid-template-columns: minmax(76px,.72fr) repeat(2,minmax(105px,1fr)); gap: 6px; margin-top: 8px; }
+        .family-axis { display: grid; place-items: center; min-height: 34px; color: var(--ink2); font-size: 12px; font-weight: 600; text-align: center; }
+        .family-cell { min-height: 104px; display: grid; place-items: center; align-content: center; gap: 3px; border: 1px solid var(--line); border-radius: 9px; padding: 12px 8px; text-align: center; }
+        .family-cell .share { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+        .family-cell .count { color: inherit; font-size: 12px; font-variant-numeric: tabular-nums; opacity: .88; }
+        #analysis-tip { position: fixed; z-index: 50; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 8px 24px rgba(21,23,28,.12); max-width: 300px; }
+        #analysis-tip .tt { color: var(--ink2); margin-bottom: 4px; }
+        #analysis-tip .tr { display: flex; justify-content: space-between; gap: 14px; line-height: 1.55; }
+        #analysis-tip strong { font-weight: 650; font-variant-numeric: tabular-nums; }
+        .empty { min-height: 160px; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+        .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11px; color: var(--ink2); margin: 8px 0; }
+        .legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .swatch { width: 10px; height: 10px; border-radius: 2px; }
+        .table-wrap { overflow: auto; max-height: 360px; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; }
+        table { border-collapse: collapse; font-size: 12px; width: 100%; }
+        th, td { padding: 5px 9px; border-bottom: 1px solid var(--grid); white-space: nowrap; text-align: right; }
+        th:first-child, td:first-child { text-align: left; }
+        thead th { position: sticky; top: 0; background: var(--wash); color: var(--ink2); font-weight: 600; }
+        td { font-variant-numeric: tabular-nums; }
+        caption { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+        [hidden] { display: none !important; }
+        footer { color: var(--muted); font-size: 12px; }
+        @media (max-width: 1080px) { .card, #subscribers-section, #families-section, #monthly-section, #plans-section { grid-column: span 12; } }
+        @media (max-width: 760px) { .visuals.dual { grid-template-columns: 1fr; } }
+        @media (max-width: 480px) { .wrap { padding-inline: 10px; } header, .global-filters { margin-inline: -10px; padding-inline: 10px; } .card { padding: 14px; } }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <header>
+            <h1>고객 운영 대시보드</h1>
+            <p class="lede">기간 필터는 월별·콘텐츠·분포 분석에 적용합니다. 가입자·가족·요금제 비교는 전체 기간 기준으로 고정합니다.</p>
+        </header>
+        <input id="webhook-url" type="hidden">
+        <form id="global-filter-form" class="filters global-filters" aria-label="공통 조회 기간">
+            <label>시작 월<input id="start-month" type="month" min="1000-01" max="9998-12" required></label>
+            <label>종료 월<input id="end-month" type="month" min="1000-01" max="9998-12" required></label>
+            <button id="global-refresh" type="submit" class="primary">새로고침</button>
+            <span id="global-status" class="status" role="status">기간 데이터를 불러옵니다.</span>
+        </form>
+        <div id="analysis-sections" class="grid"></div>
+        <footer>사용량은 1,024MB = 1GB 기준입니다. 가입자·가족·요금제 비교는 상단 기간 설정의 영향을 받지 않습니다.</footer>
+    </main>
+    <div id="analysis-tip" role="tooltip" hidden></div>
+    <script id="operations-analysis-contracts">
+/* 운영 카탈로그의 파라미터와 output 명세. SQL은 프론트에 포함하지 않는다. */
+globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
+  "OPS_ANALYSIS_001": {
+    "query_name": "연령대별 가입 요금제 구성",
+    "parameters": [
+      {
+        "position": 1,
+        "name": "as_of_date",
+        "type": "date",
+        "required": true,
+        "description": "가입자 뷰의 배치 기준일. 현재 스냅샷에 존재하는 기준일을 지정한다.",
+        "example": "2025-09-30"
+      }
+    ],
+    "output": [
+      {
+        "name": "as_of_date",
+        "type": "date",
+        "unit": "일자",
+        "description": "가입자 집계의 배치 기준일"
+      },
+      {
+        "name": "age_band",
+        "type": "text",
+        "unit": "",
+        "description": "가입자 연령 구간"
+      },
+      {
+        "name": "plan_id",
+        "type": "text",
+        "unit": "",
+        "description": "요금제 식별자"
+      },
+      {
+        "name": "plan_name",
+        "type": "text",
+        "unit": "",
+        "description": "표시용 요금제 이름"
+      },
+      {
+        "name": "subscriber_count",
+        "type": "bigint",
+        "unit": "명",
+        "description": "기준일의 해당 연령대·요금제 가입자 수"
+      },
+      {
+        "name": "age_band_share_pct",
+        "type": "numeric",
+        "unit": "%",
+        "description": "해당 연령대 전체 가입자 중 해당 요금제 가입자 비율"
+      }
+    ]
+  },
+  "OPS_ANALYSIS_002": {
+    "query_name": "월별 고객 사용량 평균·중앙값",
+    "parameters": [
+      {
+        "position": 1,
+        "name": "start_date",
+        "type": "date",
+        "required": true,
+        "description": "조회 시작월의 첫날. 포함. end_date_exclusive보다 앞선 날짜여야 한다.",
+        "example": "2025-01-01"
+      },
+      {
+        "position": 2,
+        "name": "end_date_exclusive",
+        "type": "date",
+        "required": true,
+        "description": "조회 종료 경계 월의 첫날. 제외. 1년 조회는 start_date에서 1년 뒤의 날짜를 지정한다.",
+        "example": "2026-01-01"
+      }
+    ],
+    "output": [
+      {
+        "name": "calendar_month",
+        "type": "date",
+        "unit": "월",
+        "description": "사용량 집계 월의 첫날"
+      },
+      {
+        "name": "recorded_customer_count",
+        "type": "bigint",
+        "unit": "명",
+        "description": "해당 월 사용량 기록이 있는 고유 고객 수"
+      },
+      {
+        "name": "average_monthly_usage_gb",
+        "type": "numeric",
+        "unit": "GB/명/월",
+        "description": "고객별 월 총사용량의 산술 평균"
+      },
+      {
+        "name": "median_monthly_usage_gb",
+        "type": "numeric",
+        "unit": "GB/명/월",
+        "description": "고객별 월 총사용량의 연속형 중앙값"
+      }
+    ]
+  },
+  "OPS_ANALYSIS_003": {
+    "query_name": "요금제별 평균사용량·기본 제공량 비교",
+    "parameters": [
+      {
+        "position": 1,
+        "name": "start_date",
+        "type": "date",
+        "required": true,
+        "description": "조회 시작월의 첫날. 포함. end_date_exclusive보다 앞선 날짜여야 한다.",
+        "example": "2025-01-01"
+      },
+      {
+        "position": 2,
+        "name": "end_date_exclusive",
+        "type": "date",
+        "required": true,
+        "description": "조회 종료 경계 월의 첫날. 제외. 1년 조회는 start_date에서 1년 뒤의 날짜를 지정한다.",
+        "example": "2026-01-01"
+      },
+      {
+        "position": 3,
+        "name": "as_of_date",
+        "type": "date",
+        "required": true,
+        "description": "조회 기간 전체에 공통으로 적용할 가입자 배치 기준일. 가입자 뷰의 현재 스냅샷 기준일을 지정한다.",
+        "example": "2025-09-30"
+      }
+    ],
+    "output": [
+      {
+        "name": "calendar_month",
+        "type": "date",
+        "unit": "월",
+        "description": "사용량 집계 월의 첫날"
+      },
+      {
+        "name": "as_of_date",
+        "type": "date",
+        "unit": "일자",
+        "description": "평균의 분모로 사용하는 가입자 배치 기준일"
+      },
+      {
+        "name": "plan_id",
+        "type": "text",
+        "unit": "",
+        "description": "요금제 식별자"
+      },
+      {
+        "name": "plan_name",
+        "type": "text",
+        "unit": "",
+        "description": "표시용 요금제 이름"
+      },
+      {
+        "name": "subscriber_count",
+        "type": "bigint",
+        "unit": "명",
+        "description": "기준일의 해당 요금제 전체 연령대 가입자 수"
+      },
+      {
+        "name": "total_usage_gb",
+        "type": "numeric",
+        "unit": "GB",
+        "description": "해당 월 요금제 전체 연령대·카테고리 총사용량"
+      },
+      {
+        "name": "average_usage_per_subscriber_gb",
+        "type": "numeric",
+        "unit": "GB/명/월",
+        "description": "해당 월 요금제 총사용량을 기준일 가입자 수로 나눈 값"
+      },
+      {
+        "name": "data_limit_gb",
+        "type": "numeric",
+        "unit": "GB/월",
+        "description": "현재 요금제 마스터의 기본 데이터 제공량"
+      },
+      {
+        "name": "is_unlimited",
+        "type": "boolean",
+        "unit": "",
+        "description": "무제한 데이터 요금제 여부"
+      },
+      {
+        "name": "base_allowance_usage_pct",
+        "type": "numeric",
+        "unit": "%",
+        "description": "가입자당 평균사용량의 기본 제공량 대비 비율. 무제한 또는 유효한 제공량이 없으면 null"
+      }
+    ]
+  },
+  "OPS_ANALYSIS_004": {
+    "query_name": "요금제·연령대별 콘텐츠 사용량",
+    "parameters": [
+      {
+        "position": 1,
+        "name": "start_date",
+        "type": "date",
+        "required": true,
+        "description": "조회 시작월의 첫날. 포함. end_date_exclusive보다 앞선 날짜여야 한다.",
+        "example": "2025-01-01"
+      },
+      {
+        "position": 2,
+        "name": "end_date_exclusive",
+        "type": "date",
+        "required": true,
+        "description": "조회 종료 경계 월의 첫날. 제외. 1년 조회는 start_date에서 1년 뒤의 날짜를 지정한다.",
+        "example": "2026-01-01"
+      }
+    ],
+    "output": [
+      {
+        "name": "calendar_month",
+        "type": "date",
+        "unit": "월",
+        "description": "사용량 집계 월의 첫날"
+      },
+      {
+        "name": "plan_id",
+        "type": "text",
+        "unit": "",
+        "description": "프론트 필터·집계에 사용하는 요금제 식별자"
+      },
+      {
+        "name": "plan_name",
+        "type": "text",
+        "unit": "",
+        "description": "표시용 요금제 이름"
+      },
+      {
+        "name": "age_band",
+        "type": "text",
+        "unit": "",
+        "description": "프론트 필터·집계에 사용하는 연령 구간"
+      },
+      {
+        "name": "content_category",
+        "type": "text",
+        "unit": "",
+        "description": "콘텐츠 대분류"
+      },
+      {
+        "name": "total_usage_gb",
+        "type": "numeric",
+        "unit": "GB",
+        "description": "해당 월·요금제·연령대·카테고리 총사용량. 프론트 재집계를 위해 반올림하지 않는다"
+      },
+      {
+        "name": "category_usage_share_pct",
+        "type": "numeric",
+        "unit": "%",
+        "description": "같은 월·요금제·연령대 안의 카테고리 사용량 비중. 프론트 재집계 시 다시 계산한다"
+      }
+    ]
+  },
+  "OPS_ANALYSIS_005": {
+    "query_name": "기간별 고객 사용량 분포·집중도",
+    "parameters": [
+      {
+        "position": 1,
+        "name": "start_date",
+        "type": "date",
+        "required": true,
+        "description": "조회 시작월의 첫날. 포함. end_date_exclusive보다 앞선 날짜여야 한다.",
+        "example": "2025-01-01"
+      },
+      {
+        "position": 2,
+        "name": "end_date_exclusive",
+        "type": "date",
+        "required": true,
+        "description": "조회 종료 경계 월의 첫날. 제외. 1년 조회는 start_date에서 1년 뒤의 날짜를 지정한다.",
+        "example": "2026-01-01"
+      }
+    ],
+    "output": [
+      {
+        "name": "calendar_month",
+        "type": "date",
+        "unit": "월",
+        "description": "고객별 사용량 분포·집중도를 독립 계산한 월의 첫날"
+      },
+      {
+        "name": "result_type",
+        "type": "text",
+        "unit": "",
+        "description": "distribution은 서로 겹치지 않는 사용량 구간, concentration은 상위 누적 고객군"
+      },
+      {
+        "name": "group_label",
+        "type": "text",
+        "unit": "",
+        "description": "0_to_1_gb, 1_to_5_gb, 5_to_10_gb, 10_to_30_gb, 30_to_100_gb, 100_gb_or_more, top_1_pct, top_10_pct"
+      },
+      {
+        "name": "customer_count",
+        "type": "bigint",
+        "unit": "명",
+        "description": "해당 월의 사용량 구간 또는 상위 고객군에 속한 고객 수"
+      },
+      {
+        "name": "customer_share_pct",
+        "type": "numeric",
+        "unit": "%",
+        "description": "해당 월 전체 기록 고객 중 해당 그룹 고객의 비율. 기록 고객이 없으면 null"
+      },
+      {
+        "name": "total_usage_gb",
+        "type": "numeric",
+        "unit": "GB",
+        "description": "해당 월의 그룹 총사용량. 해당 그룹 기록이 없으면 0"
+      },
+      {
+        "name": "usage_share_pct",
+        "type": "numeric",
+        "unit": "%",
+        "description": "해당 월 전체 사용량 중 그룹 사용량 비율. 전체 사용량이 없거나 0이면 null"
+      }
+    ]
+  },
+  "OPS_ANALYSIS_006": {
+    "query_name": "가족 결합·인터넷 보유 조합",
+    "parameters": [],
+    "output": [
+      {
+        "name": "has_bundle",
+        "type": "boolean",
+        "unit": "",
+        "description": "현재 가족의 결합 가입 여부"
+      },
+      {
+        "name": "has_kt_internet",
+        "type": "boolean",
+        "unit": "",
+        "description": "현재 가족의 KT 인터넷 보유 여부"
+      },
+      {
+        "name": "family_count",
+        "type": "bigint",
+        "unit": "가족",
+        "description": "해당 상태 조합의 가족 수"
+      },
+      {
+        "name": "family_share_pct",
+        "type": "numeric",
+        "unit": "%",
+        "description": "현재 전체 가족 중 해당 상태 조합 가족의 비율. 전체 가족이 없으면 null"
+      }
+    ]
   }
-}
-:root[data-theme="dark"]{
-  --bg:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#a3a29a;
-  --grid:#2c2c2a; --axis:#383835; --line:rgba(255,255,255,.10); --wash:#232321; --sel:rgba(57,135,229,.16);
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s0:#6b6a64; --o2:#184f95;
-  --serious:#ec835a; --track:#223a5c; --empty:#222220;
-  --q1:#1f3047; --q2:#23486f; --q3:#1c5cab; --q4:#2a78d6; --q5:#3987e5; --q6:#6da7ec; --q7:#9ec5f4;
-  --qt1:#ffffff; --qt2:#ffffff; --qt3:#ffffff; --qt4:#ffffff; --qt5:#0b0b0b; --qt6:#0b0b0b; --qt7:#0b0b0b;
-  --bt1:#0b0b0b; --bt2:#0b0b0b; --bt3:#0b0b0b; --bt4:#0b0b0b; --bt5:#0b0b0b; --bt6:#ffffff;
-  --dt1:#0b0b0b; --dt2:#ffffff; --dt3:#ffffff;
-  color-scheme:dark;
-}
-body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--font);padding-inline:16px;padding-block:20px 40px}
-.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-h1{font-size:22px;line-height:1.25;margin:0;font-weight:650;text-wrap:balance}
-.lede{margin:4px 0 0;color:var(--ink2);font-size:13px;max-width:78ch}
-.filters{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding-block:10px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
-.flabel{font-size:12px;color:var(--ink2);font-weight:600}
-.seg{display:inline-flex}
-.seg button{font:inherit;font-size:13px;min-height:36px;padding:0 14px;border:1px solid var(--axis);background:var(--surface);color:var(--ink);cursor:pointer;margin-left:-1px;display:inline-flex;align-items:center;gap:6px}
-.seg button:first-child{border-radius:6px 0 0 6px;margin-left:0}
-.seg button:last-child{border-radius:0 6px 6px 0}
-.seg button:hover{background:var(--wash)}
-.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink);position:relative;z-index:1}
-.seg small{font-size:10.5px;opacity:.75}
-.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px}
-.chip.warn{border-color:var(--serious)}
-.chip svg{flex:none}
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;min-width:0}
-.kpi .kl{font-size:12.5px;color:var(--ink2)}
-.kpi .kv{font-size:26px;line-height:1.2;font-weight:600;margin-top:2px;white-space:nowrap}
-.kpi .kv small{font-size:14px;font-weight:500;color:var(--ink2);margin-left:2px}
-.kpi .ks{font-size:12px;color:var(--muted);margin-top:2px}
-.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
-.c-a{grid-column:span 8}.c-d{grid-column:span 4}.c-b{grid-column:span 6}.c-c{grid-column:span 6}.c-e{grid-column:span 5}.c-f{grid-column:span 7}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.hd{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
-.hd>div:first-child{min-width:0;flex:1 1 260px}
-.hd h2{font-size:15px;margin:0;font-weight:600;text-wrap:balance}
-.hd p{margin:3px 0 0;font-size:12.5px;color:var(--ink2);max-width:64ch}
-.tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.qid{font:11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:2px 6px;white-space:nowrap}
-.tbtn{font:inherit;font-size:12px;min-height:28px;padding:0 10px;border:1px solid var(--axis);background:var(--surface);color:var(--ink);border-radius:6px;cursor:pointer}
-.tbtn:hover{background:var(--wash)}
-.switch{float:right;display:inline-flex;align-items:center;text-decoration:none;min-height:32px;padding:0 14px;font-size:14px}
-.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);align-items:center}
-.legend span{display:inline-flex;align-items:center;gap:6px}
-.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
-.lk{width:14px;height:2px;border-radius:2px;display:inline-block}
-.ramp{display:inline-flex;gap:2px}
-.ramp i{width:16px;height:10px;display:inline-block;border-radius:2px}
-.plot{min-width:0;overflow-x:auto}
-.plot svg{display:block}
-.tbl{overflow:auto;max-height:360px;border:1px solid var(--line);border-radius:6px}
-table{border-collapse:collapse;font-size:12px;width:100%}
-th,td{padding:5px 9px;border-bottom:1px solid var(--grid);white-space:nowrap;text-align:right}
-th:first-child,td:first-child{text-align:left}
-thead th{position:sticky;top:0;background:var(--wash);color:var(--ink2);font-weight:600}
-td{font-variant-numeric:tabular-nums}
-.note{font-size:12px;color:var(--muted);margin:0;max-width:80ch}
-.t{font:11px var(--font);fill:var(--muted)}
-.t2{fill:var(--ink2)}
-.tb{font-weight:600}
-.axl{stroke:var(--axis);stroke-width:1}
-.grd{stroke:var(--grid);stroke-width:1}
-rect.hl{stroke:var(--ink);stroke-width:1.5}
-text.hl{fill:var(--ink);font-weight:700}
-.dim{opacity:.3}
-.plot svg *{transition:opacity .1s}
-[tabindex]:focus-visible{outline:2px solid var(--s1);outline-offset:1px}
-.fam-rows{display:flex;flex-direction:column;margin-top:4px}
-.fam-row{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:4px 10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--grid);font-size:12.5px}
-.fam-row:first-child{border-top:0}
-.fam-row .sw{margin-top:3px}
-.fam-row b{font-weight:600}
-.fam-row .sub{grid-column:2 / 4;color:var(--ink2);font-size:12px}
-.fam-row .num{font-variant-numeric:tabular-nums;color:var(--ink2);text-align:right}
-#tip{position:fixed;z-index:50;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--axis);border-radius:6px;padding:8px 10px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.16);max-width:270px;opacity:0;transition:opacity .08s;left:0;top:0}
-#tip.on{opacity:1}
-#tip .tt{color:var(--ink2);margin-bottom:4px}
-#tip .tr{display:flex;justify-content:space-between;gap:14px;align-items:center;line-height:1.55}
-#tip .tl{color:var(--ink2);display:inline-flex;align-items:center}
-#tip .tk{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px}
-#tip strong{font-weight:650;font-variant-numeric:tabular-nums}
-.foot{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px;padding-top:4px}
-@media (max-width:1080px){
-  .c-a,.c-d,.c-b,.c-c,.c-e,.c-f{grid-column:span 12}
-}
-@media (max-width:900px){
-  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media (max-width:480px){
-  .kpi .kv{font-size:22px}
-  .card{padding:14px 14px 12px}
-}
-@media (prefers-reduced-motion: reduce){
-  *{transition:none!important}
-}
-.filters input{font:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--axis);border-radius:5px;padding:6px 8px;min-width:0}
-.filters .date-filter{display:inline-flex;align-items:center;gap:8px}
-.filters .tbtn{min-height:36px}
-.card-status{padding:32px 8px;color:var(--ink2);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;min-height:100px;text-align:center}
-.card-status.error{color:var(--serious)}
-.card[aria-busy="true"]{opacity:.75}
-</style>
-
-<div class="wrap">
-  <header>
-    <a class="tbtn switch" href="/" title="상담 화면으로 돌아갑니다">상담</a>
-    <h1>고객 운영 대시보드</h1>
-    <p class="lede">운영 영역의 집계·가명 데이터를 조회합니다. 가입·가족은 현재 스냅샷이며, 사용량은 선택 월 기준입니다.</p>
-  </header>
-
-  <form id="connection-form" class="filters" role="region" aria-label="필터">
-    <span class="flabel" id="fl-month">기준월</span>
-    <div class="seg" role="group" aria-labelledby="fl-month" id="seg"></div>
-    <span class="chip" id="mchip"></span>
-    <span class="chip" id="range-chip">사용량 기간: 조회 전</span>
-    <span class="chip" id="snapshot-chip">가입 비중 기준일: 2026-09-30 · 가입자 수 기준일: 조회 전</span>
-    <label class="flabel date-filter">가입자 수 기준일<input id="snapshot-date" type="date" required></label>
-    <button class="tbtn" type="submit">새로고침</button>
-  </form>
-  <p class="note" id="connection-status" role="status">데이터를 불러옵니다.</p>
-
-  <div class="kpis">
-    <div class="kpi"><div class="kl">총 가입자</div><div class="kv" id="k1">-</div><div class="ks" id="k1s"></div></div>
-    <div class="kpi"><div class="kl">이용자당 평균 / 중앙값</div><div class="kv" id="k2">-</div><div class="ks" id="k2s"></div></div>
-    <div class="kpi"><div class="kl">결합 가입 가족</div><div class="kv" id="k3">-</div><div class="ks" id="k3s"></div></div>
-    <div class="kpi"><div class="kl">상위 10% 고객 사용량 점유율</div><div class="kv" id="k4">-</div><div class="ks" id="k4s"></div></div>
-  </div>
-
-  <div class="grid">
-    <section class="card c-a" id="card-a" aria-labelledby="h-a">
-      <div class="hd">
-        <div><h2 id="h-a">연령대별 요금제 가입 비중</h2><p>색은 연령대 안에서 해당 요금제를 고른 비율, 숫자는 가입자 수(명)입니다. 가로축은 월정액(만원)이며 요금제 계열별로 묶었습니다.</p></div>
-        <div class="tools"><span class="qid">OPS_017</span><span class="qid">OPS_014</span><button type="button" class="tbtn" aria-pressed="false">표로 보기</button></div>
-      </div>
-      <div class="legend" id="lg-a"></div>
-      <div class="plot"></div><div class="tbl" hidden></div>
-      <p class="note">가입 비중 기준일은 2026-09-30으로 고정입니다. 변경과 해지 이력은 반영되지 않습니다.</p>
-    </section>
-
-    <section class="card c-d" id="card-d" aria-labelledby="h-d">
-      <div class="hd">
-        <div><h2 id="h-d">결합·인터넷 보유 가족</h2><p>결합 여부와 KT 인터넷 보유 여부에 따른 가족 단위 집계입니다. 인터넷 보유만으로 결합 자격을 확정할 수는 없습니다.</p></div>
-        <div class="tools"><span class="qid">OPS_023</span></div>
-      </div>
-      <div class="plot"></div><div class="tbl" hidden></div>
-      <p class="note">가족에 연결되지 않은 고객은 제외됩니다. 현재 스냅샷이며 인터넷 상태와 결합 종류는 이 뷰에서 제공하지 않습니다.</p>
-    </section>
-
-    <section class="card c-b" id="card-b" aria-labelledby="h-b">
-      <div class="hd">
-        <div><h2 id="h-b">연령대별 콘텐츠 사용 구성</h2><p>데이터 사용량 기준 비중이며 시청시간 비율이 아닙니다. 영상·숏폼·SNS·게임·웹 외 카테고리는 기타로 묶었습니다.</p></div>
-        <div class="tools"><span class="qid">OPS_025</span><button type="button" class="tbtn" aria-pressed="false">표로 보기</button></div>
-      </div>
-      <div class="legend" id="lg-b"></div>
-      <div class="plot"></div><div class="tbl" hidden></div>
-      <p class="note">19-24 구간은 19세를 포함하므로 20대 초반으로 읽지 않습니다. 카테고리별 이용자 수는 중복되므로 연령대별 고유 이용자 수를 표시하지 않습니다.</p>
-    </section>
-
-    <section class="card c-c" id="card-c" aria-labelledby="h-c">
-      <div class="hd">
-        <div><h2 id="h-c">사용량 집중도</h2><p>사용량이 많은 순으로 고객을 세웠을 때 상위 N% 고객이 전체 사용량에서 차지하는 비중입니다. 곡선이 대각선에서 멀수록 일부 고객에게 쏠립니다.</p></div>
-        <div class="tools"><span class="qid">OPS_020 × 13</span><button type="button" class="tbtn" aria-pressed="false">표로 보기</button></div>
-      </div>
-      <div class="plot"></div><div class="tbl" hidden></div>
-      <p class="note">상위 인원은 올림으로 계산하고 사용량 행이 있는 고객만 포함합니다. 작은 표본에서는 상위 1~2% 구간의 해석에 주의하세요.</p>
-    </section>
-
-    <section class="card c-e" id="card-e" aria-labelledby="h-e">
-      <div class="hd">
-        <div><h2 id="h-e">월별 이용자당 평균과 중앙값</h2><p>평균이 중앙값보다 높을수록 소수의 고사용 고객이 평균을 끌어올립니다. 단위는 이용자당 월 사용량(GB)입니다.</p></div>
-        <div class="tools"><span class="qid">OPS_018</span><button type="button" class="tbtn" aria-pressed="false">표로 보기</button></div>
-      </div>
-      <div class="legend">
-        <span><i class="lk" style="background:var(--s1)"></i>평균</span>
-        <span><i class="lk" style="background:var(--s2)"></i>중앙값</span>
-        <span><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="var(--ink2)" stroke-width="2"/></svg>부분 월</span>
-      </div>
-      <div class="plot"></div><div class="tbl" hidden></div>
-      <p class="note">부분 월 여부는 조회 기간의 시작·끝 날짜로 판단합니다. 중간 적재 누락은 별도 확인이 필요합니다. 차트를 누르면 기준월이 바뀝니다.</p>
-    </section>
-
-    <section class="card c-f" id="card-f" aria-labelledby="h-f">
-      <div class="hd">
-        <div><h2 id="h-f">요금제별 평균 사용량과 기본 제공량</h2><p>이용자당 월 평균은 요금제 총사용량을 가입자 수로 나눈 근사값입니다. 연령 혜택과 공유·이월 데이터는 제공량에 넣지 않았습니다.</p></div>
-        <div class="tools"><span class="qid">OPS_028</span><span class="qid">OPS_002</span><span class="qid">OPS_014</span><button type="button" class="tbtn" aria-pressed="false">표로 보기</button></div>
-      </div>
-      <div class="legend">
-        <span><i class="sw" style="background:var(--track)"></i>기본 제공량</span>
-        <span><i class="sw" style="background:var(--s1)"></i>이용자당 평균 사용량</span>
-        <span><i class="sw" style="background:var(--serious)"></i>제공량 초과 (▲)</span>
-        <span>흐리게 = 가입자 10명 미만 · ∞ = 무제한</span>
-      </div>
-      <div class="plot"></div><div class="tbl" hidden></div>
-      <p class="note" id="note-f"></p>
-    </section>
-  </div>
-
-  <div class="foot">
-    <span>사용량은 1024 MB = 1 GB 기준입니다. 같은 요금제의 현재 가입자 수로 나눈 평균은 사용량 행이 없는 가입자도 포함합니다.</span>
-    <span>가입일·해지·요금제 변경 이력 및 가족과 고객 사용량의 교차 분석은 이 화면에 반영하지 않습니다.</span>
-  </div>
-</div>
-
-<div id="tip" role="tooltip"></div>
-
-<script>
-(function(){
-'use strict';
-var NS='http://www.w3.org/2000/svg';
-function valueText(value,decimals){return value===null || value===undefined ? '-' : Number(value).toFixed(decimals);}
-function $(s,r){return (r||document).querySelector(s);}
-function S(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs){e.setAttribute(k,attrs[k]);}if(parent)parent.appendChild(e);return e;}
-function T(parent,x,y,str,cls,anchor){var e=S('text',{x:x,y:y,'class':'t '+(cls||''),'text-anchor':anchor||'start'},parent);e.textContent=str;return e;}
-function fmt(n,d){d=d||0;return Number(n).toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});}
-
-const QUERY_CONTRACTS = {
-    "OPS_002": {
-        "parameters": {
-            "as_of_date": "date"
-        },
-        "columns": [
-            "plan_id",
-            "plan_name",
-            "subscriber_count"
-        ],
-        "max_rows": 200
-    },
-    "OPS_014": {
-        "parameters": {
-            "limit": "integer"
-        },
-        "columns": [
-            "plan_id",
-            "plan_name",
-            "plan_family",
-            "plan_category",
-            "monthly_fee",
-            "data_limit_gb",
-            "is_unlimited"
-        ],
-        "max_rows": 200
-    },
-    "OPS_015": {
-        "parameters": {},
-        "columns": [
-            "min_date",
-            "max_date"
-        ],
-        "max_rows": 1
-    },
-    "OPS_017": {
-        "parameters": {
-            "as_of_date": "date"
-        },
-        "columns": [
-            "as_of_date",
-            "age_band",
-            "plan_id",
-            "plan_name",
-            "subscriber_count",
-            "share_within_age_band_pct"
-        ],
-        "max_rows": 500
-    },
-    "OPS_018": {
-        "parameters": {
-            "from_month": "date",
-            "to_month": "date"
-        },
-        "columns": [
-            "calendar_month",
-            "total_usage_gb",
-            "unique_usage_users",
-            "average_usage_gb_per_user",
-            "median_usage_gb_per_user"
-        ],
-        "max_rows": 120
-    },
-    "OPS_020": {
-        "parameters": {
-            "year_month": "text",
-            "top_percent": "integer"
-        },
-        "columns": [
-            "calendar_month",
-            "top_percent",
-            "unique_usage_users",
-            "top_customer_count",
-            "top_usage_mb",
-            "total_usage_mb",
-            "top_usage_share_pct"
-        ],
-        "max_rows": 1
-    },
-    "OPS_023": {
-        "parameters": {},
-        "columns": [
-            "has_bundle",
-            "has_kt_internet",
-            "family_count",
-            "member_count",
-            "average_member_count"
-        ],
-        "max_rows": 20
-    },
-    "OPS_025": {
-        "parameters": {
-            "year_month": "text"
-        },
-        "columns": [
-            "calendar_month",
-            "age_band",
-            "content_category",
-            "total_usage_gb",
-            "usage_user_count",
-            "average_usage_gb_per_user",
-            "age_band_total_usage_gb",
-            "category_usage_share_pct"
-        ],
-        "max_rows": 200
-    },
-    "OPS_028": {
-        "parameters": {
-            "year_month": "text"
-        },
-        "columns": [
-            "calendar_month",
-            "plan_id",
-            "plan_name",
-            "content_category",
-            "total_usage_gb",
-            "usage_user_count",
-            "average_usage_gb_per_user",
-            "plan_total_usage_gb",
-            "category_usage_share_pct"
-        ],
-        "max_rows": 2000
-    }
 };
-// 웹훅 URL은 고정한다. as_of_date는 OPS_002의 기본 기준일이며 화면에서 변경할 수 있다.
-// OPS_017은 아래 별도 상수로 2026-09-30에 고정한다. DB 인증 정보는 넣지 않는다.
-// POST 요청: { queries: [{ query_id, parameters }, ...] }
-// 응답: { results: [{ query_id, parameters, ok: true, rows: [...] }, ...] }
-// 개별 실패: { query_id, parameters, ok: false, error: { code, message } }
-// n8n은 요청의 query_id와 parameters를 그대로 반환한다. 결과 순서는 달라도 된다.
-const CONFIG = {
-    webhook_url: 'https://yuno-da.app.n8n.cloud/webhook/5c3aecf3-87ee-404a-b6fc-af8c2dbe1c18',
-    as_of_date: '2026-09-30',
-    // 최초 선택 월. 빈 값이면 한국 시간 기준 직전 월을 사용한다.
-    // 최초 요청 전에 프론트에서 월을 정하므로 전체 쿼리를 한 번에 보낸다.
-    year_month: '',
-    // 빈 값이면 한국 시간의 현재 월까지 최근 120개월을 조회한다.
-    // 기간을 직접 지정할 때는 둘 다 YYYY-MM-01 형식으로 입력한다.
-    from_month: '',
-    to_month: '',
-    timeout_ms: 90000,
-    concurrency: 2
-};
-const OPS_017_AS_OF_DATE = '2026-09-30';
-const AGE = ['8-12','13-18','19-24','25-34','35-49','50-64','65+'];
-const CAT = ['영상','숏폼','SNS','게임','웹','기타'];
-const CATEGORY_KEYS = ['video','short_form','sns','game','web'];
-const PCT = [1,2,5,10,20,30,40,50,60,70,80,90,100];
-let AGE_N = [], CNT = [], SHARES = [], PSUB = [], PLANS = [], FAM = [], famPlans = [];
-let MONTHS = [], M = [], FAMGRP = [], cur = -1, session = null;
-const cardStates = {};
-const NUMERIC_COLUMNS = new Set(['monthly_fee','data_limit_gb','subscriber_count','share_within_age_band_pct','total_usage_gb','unique_usage_users','average_usage_gb_per_user','median_usage_gb_per_user','top_percent','top_customer_count','top_usage_mb','total_usage_mb','top_usage_share_pct','family_count','member_count','average_member_count','usage_user_count','age_band_total_usage_gb','category_usage_share_pct','plan_total_usage_gb']);
-function validDate(value) {
-    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-    const date = new Date(value + 'T00:00:00Z');
-    return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value;
-}
-function monthDate(value) { return value.slice(0,7) + '-01'; }
-function validateParameters(query_id, parameters) {
-    const contract = QUERY_CONTRACTS[query_id];
-    if (!contract || !parameters || typeof parameters !== 'object' || Array.isArray(parameters)) throw new Error('지원하지 않는 쿼리 요청입니다.');
-    const expected = Object.keys(contract.parameters).sort();
-    if (JSON.stringify(Object.keys(parameters).sort()) !== JSON.stringify(expected)) throw new Error(query_id + ': 파라미터 이름이 카탈로그와 다릅니다.');
-    expected.forEach(function(name) {
-        const type = contract.parameters[name], value = parameters[name];
-        if (type === 'date' && !validDate(value)) throw new Error(name + ': YYYY-MM-DD 날짜가 필요합니다.');
-        if (type === 'integer' && !Number.isInteger(value)) throw new Error(name + ': 정수가 필요합니다.');
-        if (type === 'text' && typeof value !== 'string') throw new Error(name + ': 문자열이 필요합니다.');
-    });
-    if ('year_month' in parameters && !/^\d{4}-(0[1-9]|1[0-2])$/.test(parameters.year_month)) throw new Error('year_month: YYYY-MM 형식이 필요합니다.');
-    if ('top_percent' in parameters && (parameters.top_percent < 1 || parameters.top_percent > 100)) throw new Error('top_percent: 1~100 정수가 필요합니다.');
-    if ('limit' in parameters && parameters.limit < 1) throw new Error('limit: 1 이상의 정수가 필요합니다.');
-    if ('from_month' in parameters) {
-        const from = monthDate(parameters.from_month), to = monthDate(parameters.to_month);
-        const count = (Number(to.slice(0,4))-Number(from.slice(0,4)))*12 + Number(to.slice(5,7))-Number(from.slice(5,7))+1;
-        if (count < 1 || count > 120) throw new Error('월 조회 범위는 시작월부터 최대 120개월입니다.');
-    }
-    return contract;
-}
-function normalizeRows(query_id, rows, parameters) {
-    const contract = QUERY_CONTRACTS[query_id];
-    if (!Array.isArray(rows)) throw new Error(query_id + ': rows는 배열이어야 합니다.');
-    const normalized = rows.map(function(source) {
-        if (!source || typeof source !== 'object' || contract.columns.some(function(key) { return !Object.prototype.hasOwnProperty.call(source,key); })) throw new Error(query_id + ': 반환 컬럼이 카탈로그와 다릅니다.');
-        const row = Object.assign({},source);
-        contract.columns.forEach(function(key) {
-            const value = row[key];
-            if (NUMERIC_COLUMNS.has(key) && value !== null) {
-                if ((typeof value !== 'number' && typeof value !== 'string') || String(value).trim() === '' || !Number.isFinite(Number(value))) throw new Error(query_id + ': 숫자 컬럼 형식 오류 (' + key + ')');
-                row[key] = Number(value);
-            }
-            if (['has_bundle','has_kt_internet','is_unlimited'].includes(key)) {
-                if ([true,'true','t'].includes(value)) row[key] = true;
-                else if ([false,'false','f'].includes(value)) row[key] = false;
-                else throw new Error(query_id + ': boolean 컬럼 형식 오류 (' + key + ')');
-            }
-            if (['calendar_month','as_of_date','min_date','max_date'].includes(key) && value !== null) {
-                if (typeof value !== 'string' || !validDate(value.slice(0,10))) throw new Error(query_id + ': 날짜 컬럼 형식 오류 (' + key + ')');
-                row[key] = value.slice(0,10);
-            }
-        });
-        return row;
-    });
-    if (parameters) normalized.forEach(function(row) {
-        if ('year_month' in parameters && row.calendar_month !== parameters.year_month + '-01') throw new Error(query_id + ': 요청 월과 반환 월이 다릅니다.');
-        if ('as_of_date' in row && row.as_of_date !== parameters.as_of_date) throw new Error(query_id + ': 요청 기준일과 반환 기준일이 다릅니다.');
-        if (query_id === 'OPS_020' && row.top_percent !== parameters.top_percent) throw new Error(query_id + ': 요청 상위 비율과 반환 비율이 다릅니다.');
-        if (query_id === 'OPS_018' && (row.calendar_month < monthDate(parameters.from_month) || row.calendar_month > monthDate(parameters.to_month))) throw new Error(query_id + ': 반환 월이 요청 범위 밖입니다.');
-    });
-    if (query_id === 'OPS_028') {
-        const totals = new Map();
-        normalized.forEach(function(row) {
-            if (totals.has(row.plan_id) && Math.abs(totals.get(row.plan_id) - row.plan_total_usage_gb) > 0.01) throw new Error(query_id + ': 같은 요금제의 총사용량이 일치하지 않습니다.');
-            totals.set(row.plan_id, row.plan_total_usage_gb);
-        });
-    }
-    return normalized;
-}
-function queryRequest(query_id, parameters) {
-    return {query_id:query_id,parameters:parameters};
-}
-function querySignature(query) {
-    const parameters={};
-    Object.keys(query.parameters).sort().forEach(function(key){parameters[key]=query.parameters[key];});
-    return JSON.stringify({query_id:query.query_id,parameters:parameters});
-}
-// 차트에서 데이터를 찾기 위한 내부 키이며 요청에는 포함하지 않는다.
-function chartDataKey(query) {
-    if (query.query_id==='OPS_020') return query.query_id+':'+query.parameters.year_month+':'+query.parameters.top_percent;
-    if (['OPS_025','OPS_028'].includes(query.query_id)) return query.query_id+':'+query.parameters.year_month;
-    return query.query_id;
-}
-function initialYearMonth() {
-    if (CONFIG.year_month) {
-        validateParameters('OPS_025',{year_month:CONFIG.year_month});
-        return CONFIG.year_month;
-    }
-    const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit'}).formatToParts(new Date());
-    const year=parts.find(function(part){return part.type==='year';}).value;
-    const month=parts.find(function(part){return part.type==='month';}).value;
-    const previous=new Date(year+'-'+month+'-01T00:00:00Z');
-    previous.setUTCMonth(previous.getUTCMonth()-1);
-    return previous.toISOString().slice(0,7);
-}
-function usageSummaryParameters() {
-    if (CONFIG.from_month || CONFIG.to_month) {
-        const parameters={from_month:CONFIG.from_month,to_month:CONFIG.to_month};
-        validateParameters('OPS_018',parameters);
-        return parameters;
-    }
-    const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit'}).formatToParts(new Date());
-    const year=parts.find(function(part){return part.type==='year';}).value;
-    const month=parts.find(function(part){return part.type==='month';}).value;
-    const to_month=year+'-'+month+'-01';
-    const first=new Date(to_month+'T00:00:00Z');
-    first.setUTCMonth(first.getUTCMonth()-119);
-    return {from_month:first.toISOString().slice(0,10),to_month:to_month};
-}
-// 화면에서 필요한 모든 쿼리를 한 목록에 둔다. 변경 시 여기의 항목만 수정한다.
-function dashboardQueries(as_of_date,year_month) {
-    return [
-        queryRequest('OPS_014',{limit:200}),
-        queryRequest('OPS_017',{as_of_date:OPS_017_AS_OF_DATE}),
-        queryRequest('OPS_002',{as_of_date:as_of_date}),
-        queryRequest('OPS_023',{}),
-        queryRequest('OPS_015',{}),
-        queryRequest('OPS_018',usageSummaryParameters()),
-        queryRequest('OPS_025',{year_month:year_month}),
-        queryRequest('OPS_028',{year_month:year_month})
-    ].concat(PCT.map(function(percent) {
-        return queryRequest('OPS_020',{year_month:year_month,top_percent:percent});
-    }));
-}
-function validateBatch(queries) {
-    if (!Array.isArray(queries) || !queries.length) throw new Error('queries는 비어 있지 않은 배열이어야 합니다.');
-    const signatures=new Set();
-    queries.forEach(function(query) {
-        if (!query || Object.keys(query).sort().join(',')!=='parameters,query_id') throw new Error('각 요청 항목에는 query_id와 parameters만 넣으세요.');
-        validateParameters(query.query_id,query.parameters);
-        const signature=querySignature(query);
-        if (signatures.has(signature)) throw new Error('동일한 쿼리와 파라미터가 중복되었습니다.');
-        signatures.add(signature);
-    });
-}
-async function requestBatch(queries, context) {
-    validateBatch(queries);
-    if (context.controller.signal.aborted) throw new DOMException('취소된 요청','AbortError');
-    const controller = new AbortController();
-    const abort = function() { controller.abort(); };
-    context.controller.signal.addEventListener('abort',abort,{once:true});
-    const timer = setTimeout(function() { controller.abort(); },CONFIG.timeout_ms);
-    try {
-        const response = await fetch(context.webhook_url, {
-            method:'POST', headers:{'Content-Type':'application/json'}, credentials:'omit',
-            body:JSON.stringify({queries:queries}), signal:controller.signal
-        });
-        if (!response.ok) throw new Error('HTTP ' + response.status + ': 웹훅 실행에 실패했습니다.');
-        const body = await response.json();
-        if (!body || Array.isArray(body)) throw new Error('묶음 응답은 results 배열을 포함한 JSON 객체여야 합니다.');
-        if (body.ok === false) throw new Error(body.error && typeof body.error.message === 'string' ? body.error.message : '쿼리 실행에 실패했습니다.');
-        if (!Array.isArray(body.results)) throw new Error('응답에 results 배열이 필요합니다.');
-        const expected=new Set(queries.map(querySignature));
-        const results=new Map();
-        body.results.forEach(function(result) {
-            if (!result) throw new Error('응답 항목이 올바르지 않습니다.');
-            validateParameters(result.query_id,result.parameters);
-            const signature=querySignature(result);
-            if (!expected.has(signature) || results.has(signature)) throw new Error('응답의 쿼리·파라미터가 요청 목록과 다르거나 중복되었습니다.');
-            results.set(signature,result);
-        });
-        return results;
-    } catch (error) {
-        if (context.controller.signal.aborted) throw new DOMException('취소된 요청','AbortError');
-        if (error.name === 'AbortError') throw new Error('조회 시간이 초과되었습니다. 다시 시도하세요.');
-        if (error instanceof TypeError) throw new Error('웹훅 연결 실패: URL, 네트워크, CORS 설정을 확인하세요.');
-        throw error;
-    } finally {
-        clearTimeout(timer);
-        context.controller.signal.removeEventListener('abort',abort);
-    }
-}
-function createContext(webhook_url,as_of_date) {
-    const context = {webhook_url:webhook_url,as_of_date:as_of_date,selected_year_month:null,raw:{},cache:new Map(),controller:new AbortController(),queue:[],active:0,initializing:true};
-    context.schedule = function(task) {
-        return new Promise(function(resolve,reject) {
-            context.queue.push({task:task,resolve:resolve,reject:reject});
-            pump();
-        });
+    </script>
+    <script id="operations-analysis-dashboard">
+(function (root, factory) {
+    'use strict';
+    const dashboard = factory(root.OPERATIONS_ANALYSIS_CONTRACTS);
+    root.OperationsAnalysisDashboard = dashboard;
+    if (typeof document !== 'undefined') dashboard.mount(document);
+})(globalThis, function (contracts) {
+    'use strict';
+
+    const DEFAULT_ENDPOINT = 'https://yuno-da.app.n8n.cloud/webhook/bb80624e-76fd-48c7-bafa-ef35769e412c';
+    const FULL_PERIOD_START = '2026-01-01';
+    const FULL_PERIOD_END_EXCLUSIVE = '2026-10-01';
+    const FIXED_AS_OF_DATE = '2026-09-30';
+    const AGE_ORDER = ['8-12', '13-18', '19-24', '25-34', '35-49', '50-64', '65+'];
+    const COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)', 'var(--s0)'];
+    const LABELS = {
+        as_of_date: '가입자 기준일', age_band: '연령대', plan_id: '요금제 ID', plan_name: '요금제',
+        subscriber_count: '가입자 수', age_band_share_pct: '연령대 내 가입 비중', calendar_month: '월',
+        recorded_customer_count: '사용량 기록 고객 수', average_monthly_usage_gb: '고객당 월평균',
+        median_monthly_usage_gb: '월사용량 중앙값', total_usage_gb: '총사용량',
+        average_usage_per_subscriber_gb: '가입자당 월평균', data_limit_gb: '기본 제공량',
+        is_unlimited: '무제한 여부', base_allowance_usage_pct: '기본 제공량 대비 평균사용량',
+        content_category: '콘텐츠 카테고리', category_usage_share_pct: '고객군 내 콘텐츠 비중',
+        result_type: '결과 유형', group_label: '고객군', customer_count: '고객 수',
+        customer_share_pct: '고객 비중', usage_share_pct: '사용량 비중',
+        has_bundle: '결합 가입 여부', has_kt_internet: 'KT 인터넷 보유 여부',
+        family_count: '가족 수', family_share_pct: '가족 비중'
     };
-    function pump() {
-        while (context.active < CONFIG.concurrency && context.queue.length) {
-            const entry = context.queue.shift();
-            if (context.controller.signal.aborted) { entry.reject(new DOMException('취소된 요청','AbortError')); continue; }
-            context.active++;
-            Promise.resolve().then(entry.task).then(entry.resolve,entry.reject).finally(function() { context.active--; pump(); });
-        }
+    const GROUP_LABELS = {
+        '0_to_1_gb': '0~1GB 미만', '1_to_5_gb': '1~5GB 미만',
+        '5_to_10_gb': '5~10GB 미만', '10_to_30_gb': '10~30GB 미만',
+        '30_to_100_gb': '30~100GB 미만', '100_gb_or_more': '100GB 이상',
+        'top_1_pct': '상위 1%', 'top_10_pct': '상위 10%'
+    };
+    function planFamilyName(value) {
+        const original = String(value || '').trim();
+        const family = original
+            .replace(/\(\s*\d+(?:\.\d+)?\s*(?:GB|MB|TB|기가)\s*\)/gi, ' ')
+            .replace(/\b\d+(?:\.\d+)?\s*(?:GB|MB|TB)\b/gi, ' ')
+            .replace(/\d+(?:\.\d+)?\s*기가/gi, ' ')
+            .replace(/\s*무제한\s*$/i, ' ')
+            .replace(/\s*\d+(?:\.\d+)?\s*만원\s*$/i, ' ')
+            .replace(/[\s·|/-]+$/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return family || original;
     }
-    return context;
-}
-function result(key) { return session && session.raw[key]; }
-function loaded(key) { const item=result(key); return item && item.status === 'ready'; }
-function rowsFor(key) { return loaded(key) ? result(key).rows : []; }
-function dependencyState(keys) {
-    if (!session) return {status:'idle',message:'데이터를 불러올 준비를 하고 있습니다.'};
-    const errors = keys.map(result).filter(function(value) { return value && value.status === 'error'; });
-    if (errors.length) return {status:'error',message:errors[0].message};
-    if (!keys.every(loaded)) return {status:'loading',message:'데이터를 조회하고 있습니다.'};
-    return {status:'ready'};
-}
-function setCardState(id,keys,hasData) {
-    const state=dependencyState(keys);
-    if (state.status === 'ready' && !hasData) { state.status='empty'; state.message='해당 조건의 데이터가 없습니다.'; }
-    cardStates[id]=state;
-}
-function applyCatalog(rows) {
-    const groups=[];
-    rows.forEach(function(row) { if (!groups.includes(row.plan_family)) groups.push(row.plan_family); });
-    FAM=groups.map(function(group) { return rows.find(function(row) { return row.plan_family === group; }).plan_category; });
-    PLANS=rows.map(function(row) {
-        return {id:row.plan_id,name:row.plan_name,f:groups.indexOf(row.plan_family),fee:row.monthly_fee,lim:row.is_unlimited?null:row.data_limit_gb};
-    }).sort(function(a,b) { return a.f-b.f || a.fee-b.fee || a.id.localeCompare(b.id); });
-    famPlans=FAM.map(function(_,f) { return PLANS.map(function(plan,index) { return plan.f === f ? index : -1; }).filter(function(index) { return index >= 0; }); });
-}
-function mapAgeRows(rows) {
-    return AGE.map(function(age_band) {
-        const subset=rows.filter(function(row) { return row.age_band === age_band; });
-        const gb=CAT.map(function() { return 0; });
-        subset.forEach(function(row) {
-            const index=CATEGORY_KEYS.indexOf(row.content_category);
-            gb[index < 0 ? 5 : index] += row.total_usage_gb;
+    function planCapacityName(value) {
+        const original = String(value || '');
+        const capacity = original.match(/\d+(?:\.\d+)?\s*(?:GB|MB|TB|기가)/i)?.[0];
+        if (capacity) return capacity.replace(/\s+/g, '');
+        return /무제한/i.test(original) ? '무제한' : '';
+    }
+    function planCompactName(value) {
+        const family = planFamilyName(value), capacity = planCapacityName(value);
+        return capacity ? family + ' ' + capacity : family;
+    }
+    function planCapacityGb(value) {
+        const match = String(value || '').match(/(\d+(?:\.\d+)?)\s*(GB|MB|TB|기가)/i);
+        if (!match) return Number.MAX_SAFE_INTEGER;
+        const amount = Number(match[1]), unit = match[2].toUpperCase();
+        return unit === 'MB' ? amount / 1024 : unit === 'TB' ? amount * 1024 : amount;
+    }
+    function planOrder(value) {
+        const name = String(value || '').replace(/\s+/g, '');
+        const capacity = planCapacityGb(value);
+        if (name.includes('음성18.7')) return { rank: 0, capacity };
+        if (name.includes('베이직') && name.includes('이월')) return { rank: 2, capacity };
+        if (name.includes('베이직80')) return { rank: 3, capacity };
+        if (name.includes('베이직100')) return { rank: 4, capacity };
+        if (name.includes('베이직')) return { rank: 1, capacity };
+        if (name.includes('초이스더블')) return { rank: 8, capacity };
+        if (name.includes('초이스90')) return { rank: 5, capacity };
+        if (name.includes('초이스110')) return { rank: 6, capacity };
+        if (name.includes('초이스130')) return { rank: 7, capacity };
+        return { rank: 99, capacity };
+    }
+    function comparePlanNames(nameA, nameB, idA = '', idB = '') {
+        const orderA = planOrder(nameA), orderB = planOrder(nameB);
+        return orderA.rank - orderB.rank
+            || orderA.capacity - orderB.capacity
+            || planCompactName(nameA).localeCompare(planCompactName(nameB), 'ko')
+            || String(idA).localeCompare(String(idB));
+    }
+    const comparePlans = (a, b) => comparePlanNames(a.plan_name, b.plan_name, a.plan_id, b.plan_id);
+    const binding = (control, transform = 'identity') => ({ control, transform });
+    const fixedBinding = value => ({ value });
+    const SHARED_CONTROLS = [
+        { id: 'start-month', type: 'month' },
+        { id: 'end-month', type: 'month' }
+    ];
+    const rangeBindings = {
+        start_date: binding('start-month', 'month_start'),
+        end_date_exclusive: binding('end-month', 'next_month')
+    };
+    const SECTION_SPECS = [
+        {
+            key: 'subscribers', query_id: 'OPS_ANALYSIS_001', wide: true, renderer: 'subscribers',
+            controls: [], fixedPeriod: true,
+            bindings: { as_of_date: fixedBinding(FIXED_AS_OF_DATE) },
+            chart_columns: ['age_band', 'plan_id', 'plan_name', 'subscriber_count', 'age_band_share_pct'],
+            description: '연령대 × 요금제 히트맵입니다. 기간 설정 미적용 · 전체 기간 기준이며 가입자 기준일은 2026-09-30입니다.',
+            note: '가입일이 기준일 이하인 고객 집계이며 취소·요금제 변경 이력을 반영하지 않습니다.'
+        },
+        {
+            key: 'monthly', query_id: 'OPS_ANALYSIS_002', renderer: 'monthly',
+            controls: [],
+            bindings: { ...rangeBindings },
+            chart_columns: ['calendar_month', 'recorded_customer_count', 'average_monthly_usage_gb', 'median_monthly_usage_gb'],
+            description: '선택한 기간의 각 월별 고객 사용량 평균과 중앙값을 비교합니다.',
+            note: '사용량 기록 고객만 포함합니다. 기록이 없는 월의 평균·중앙값은 빈 값으로 표시합니다.'
+        },
+        {
+            key: 'plans', query_id: 'OPS_ANALYSIS_003', wide: true, renderer: 'plans',
+            controls: [], fixedPeriod: true,
+            bindings: {
+                start_date: fixedBinding(FULL_PERIOD_START),
+                end_date_exclusive: fixedBinding(FULL_PERIOD_END_EXCLUSIVE),
+                as_of_date: fixedBinding(FIXED_AS_OF_DATE)
+            },
+            chart_columns: ['calendar_month', 'plan_id', 'plan_name', 'subscriber_count', 'average_usage_per_subscriber_gb', 'data_limit_gb', 'is_unlimited', 'base_allowance_usage_pct'],
+            description: '요금제별 가입자당 월평균 사용량과 기본 데이터 제공량을 비교합니다. 기간 설정 미적용 · 전체 데이터 기간 2026-01~2026-09, 가입자 기준일 2026-09-30입니다.',
+            note: '기간 전체에 같은 가입자 스냅샷을 사용합니다. 연령·공유·이월 혜택은 기본 제공량에 포함하지 않습니다.'
+        },
+        {
+            key: 'content', query_id: 'OPS_ANALYSIS_004', wide: true, renderer: 'content',
+            controls: [],
+            bindings: { ...rangeBindings },
+            chart_columns: ['calendar_month', 'plan_id', 'plan_name', 'age_band', 'content_category', 'total_usage_gb'],
+            description: '선택한 기간의 데이터를 요금제별·연령대별 두 그래프로 집계합니다.',
+            note: '월·요금제·연령 변경은 추가 요청 없이 적용됩니다. 구성 비중은 필터 후 사용량을 합산해 다시 계산합니다. 영상·숏폼·SNS·게임·웹 외 카테고리는 그래프에서 기타로 묶고 표에는 원본 카테고리를 유지합니다.'
+        },
+        {
+            key: 'distribution', query_id: 'OPS_ANALYSIS_005', wide: true, renderer: 'distribution',
+            controls: [],
+            bindings: { ...rangeBindings },
+            chart_columns: ['result_type', 'group_label', 'customer_count', 'customer_share_pct', 'total_usage_gb', 'usage_share_pct'],
+            description: '선택 기간의 사용량 구간별 고객 분포를 막대로 표시하고, 상위 1%·10% 고객의 사용량 점유율을 같은 그래프에서 비교합니다.',
+            note: '집중도 곡선은 상위 1%·10%의 제공된 지점만 연결합니다. 가로축은 올림 후 실제 고객 비중이며 다른 구간을 추정하지 않습니다. 두 집중도 값을 합산하지 않습니다.'
+        },
+        {
+            key: 'families', query_id: 'OPS_ANALYSIS_006', renderer: 'families',
+            controls: [], fixedPeriod: true, bindings: {},
+            chart_columns: ['has_bundle', 'has_kt_internet', 'family_count', 'family_share_pct'],
+            description: '결합 가입 여부와 KT 인터넷 보유 여부에 따른 네 가지 가족 구성을 비교합니다. 기간 설정 미적용 · 전체 기간의 현재 가족 스냅샷 기준입니다.',
+            note: '현재 가족 스냅샷입니다.'
+        }
+    ].map(section => ({
+        ...section,
+        table_id: section.key + '-table',
+        table_columns: contracts[section.query_id].output.map(column => column.name),
+        visible_table_columns: contracts[section.query_id].output.filter(column => !['as_of_date', 'plan_id'].includes(column.name)).map(column => column.name)
+    }));
+
+    function getSection(key) {
+        const section = SECTION_SPECS.find(item => item.key === key);
+        if (!section) throw new Error('알 수 없는 분석 섹션입니다.');
+        return section;
+    }
+    function validDate(value) {
+        return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+            && !Number.isNaN(Date.parse(value + 'T00:00:00Z'))
+            && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value;
+    }
+    function monthStart(value) {
+        if (!/^\d{4}-\d{2}$/.test(String(value)) || !validDate(value + '-01')) throw new Error('올바른 월을 선택하세요.');
+        return value + '-01';
+    }
+    function nextMonth(value) {
+        const date = new Date(monthStart(value) + 'T00:00:00Z');
+        date.setUTCMonth(date.getUTCMonth() + 1);
+        return date.toISOString().slice(0, 10);
+    }
+    function monthEnd(value) {
+        const date = new Date(nextMonth(value) + 'T00:00:00Z');
+        date.setUTCDate(date.getUTCDate() - 1);
+        return date.toISOString().slice(0, 10);
+    }
+    function transform(value, kind) {
+        if (kind === 'month_start') return monthStart(value);
+        if (kind === 'next_month') return nextMonth(value);
+        if (kind === 'month_end') return monthEnd(value);
+        if (kind === 'year_start' || kind === 'year_end') {
+            if (!/^\d{4}$/.test(String(value)) || Number(value) < 1000 || Number(value) > 9998) throw new Error('조회 연도를 확인하세요.');
+            return String(Number(value) + (kind === 'year_end' ? 1 : 0)) + '-01-01';
+        }
+        return value;
+    }
+    function createRequestSpec(sectionKey, values, endpoint = DEFAULT_ENDPOINT) {
+        const section = getSection(sectionKey);
+        const contract = contracts[section.query_id];
+        const url = new URL(endpoint);
+        if (!['https:', 'http:'].includes(url.protocol)) throw new Error('HTTP 또는 HTTPS 요청 주소를 입력하세요.');
+        const parameters = {};
+        contract.parameters.forEach(parameter => {
+            const source = section.bindings[parameter.name];
+            if (!source) throw new Error('분석 파라미터 연결을 확인하세요.');
+            const value = Object.prototype.hasOwnProperty.call(source, 'value')
+                ? source.value : transform(values[source.control], source.transform);
+            if (!validDate(value)) throw new Error('날짜를 확인하세요: ' + parameter.name);
+            if (parameter.name !== 'as_of_date' && !value.endsWith('-01')) throw new Error('조회 범위는 월의 첫날이어야 합니다.');
+            parameters[parameter.name] = value;
         });
-        const total=gb.reduce(function(sum,value) { return sum+value; },0);
-        return {total:total,gb:gb,sh:gb.map(function(value) { return total > 0 ? value/total : 0; })};
-    });
-}
-function mapPlanRows(rows,subscriptions,plans) {
-    const totals=new Map();
-    rows.forEach(function(row) {
-        if (totals.has(row.plan_id) && Math.abs(totals.get(row.plan_id)-row.plan_total_usage_gb) > 0.01) throw new Error('같은 요금제의 총사용량 값이 일치하지 않습니다.');
-        totals.set(row.plan_id,row.plan_total_usage_gb);
-    });
-    return plans.map(function(plan,index) {
-        const total=totals.get(plan.id) || 0, count=subscriptions[index];
-        return {total:total,avg:count > 0 ? total/count : null};
-    });
-}
-function mapConcentration(rows) {
-    return rows.map(function(row) { return {p:row.top_percent,k:row.top_customer_count,gb:row.top_usage_mb/1024,total:row.total_usage_mb/1024,share:row.top_usage_share_pct === null ? null : row.top_usage_share_pct/100}; }).sort(function(a,b) { return a.p-b.p; });
-}
-function rebuildData() {
-    applyCatalog(rowsFor('OPS_014'));
-    AGE_N=AGE.map(function() { return 0; });
-    CNT=AGE.map(function() { return PLANS.map(function() { return 0; }); });
-    SHARES=AGE.map(function() { return PLANS.map(function() { return 0; }); });
-    rowsFor('OPS_017').forEach(function(row) {
-        const a=AGE.indexOf(row.age_band), p=PLANS.findIndex(function(plan) { return plan.id === row.plan_id; });
-        if (a >= 0 && p >= 0) { CNT[a][p]=row.subscriber_count; SHARES[a][p]=row.share_within_age_band_pct; AGE_N[a]+=row.subscriber_count; }
-    });
-    PSUB=PLANS.map(function(plan) { const row=rowsFor('OPS_002').find(function(item) { return item.plan_id === plan.id; }); return row ? row.subscriber_count : 0; });
-    FAMGRP=rowsFor('OPS_023').map(function(row) {
-        const index=row.has_bundle ? (row.has_kt_internet ? 0 : 3) : (row.has_kt_internet ? 1 : 2);
-        return {name:['결합 가입 · 인터넷 보유','인터넷 보유 · 미결합','인터넷 없음 · 미결합','결합 가입 · 인터넷 없음'][index],has_bundle:row.has_bundle,fam:row.family_count,mem:row.member_count,average:row.average_member_count,note:row.has_kt_internet && !row.has_bundle ? '결합 검토 후보 · 인터넷 상태와 자격은 별도 확인' : '',color:['var(--s1)','var(--o2)','var(--s0)','var(--s2)'][index],tc:'var(--dt'+(Math.min(index,2)+1)+')'};
-    });
-    M=MONTHS.map(function(month) {
-        const summary=rowsFor('OPS_018').find(function(row) { return row.calendar_month.slice(0,7) === month.k; });
-        const concentration=PCT.flatMap(function(percent) { return rowsFor('OPS_020:'+month.k+':'+percent); });
-        return {m:month,users:summary ? summary.unique_usage_users : null,total:summary ? summary.total_usage_gb : null,avg:summary ? summary.average_usage_gb_per_user : null,median:summary ? summary.median_usage_gb_per_user : null,age:mapAgeRows(rowsFor('OPS_025:'+month.k)),plan:mapPlanRows(rowsFor('OPS_028:'+month.k),PSUB,PLANS),conc:mapConcentration(concentration)};
-    });
-    setCardState('a',['OPS_014','OPS_017'],PLANS.length && rowsFor('OPS_017').length);
-    setCardState('d',['OPS_023'],FAMGRP.some(function(group) { return group.fam > 0; }));
-    setCardState('e',['OPS_015','OPS_018'],M.some(function(month) { return month.avg !== null; }));
-    const month=MONTHS[cur];
-    const rangeState=dependencyState(['OPS_015','OPS_018']);
-    if (!month) {
-        ['b','c','f'].forEach(function(id) { cardStates[id]=rangeState.status === 'ready' ? {status:'empty',message:'조회할 사용량 월이 없습니다.'} : rangeState; });
-    } else {
-        const mo=M[cur];
-        setCardState('b',['OPS_025:'+month.k],mo.age.some(function(age) { return age.total > 0; }));
-        setCardState('c',PCT.map(function(percent) { return 'OPS_020:'+month.k+':'+percent; }),mo.conc.some(function(point) { return point.share !== null; }));
-        setCardState('f',['OPS_014','OPS_002','OPS_028:'+month.k],PLANS.length && rowsFor('OPS_002').length && rowsFor('OPS_028:'+month.k).length);
+        if (parameters.start_date && parameters.start_date >= parameters.end_date_exclusive) throw new Error('종료월은 시작월보다 앞설 수 없습니다.');
+        return {
+            section_key: section.key,
+            table_id: section.table_id,
+            url: url.href,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: { query_id: section.query_id, parameters }
+        };
     }
-}
-async function loadBatch(context,queries,force) {
-    if (context !== session || context.controller.signal.aborted) return;
-    validateBatch(queries);
-    const pending=[],items=new Map(),waiting=[];
-    queries.forEach(function(query) {
-        const signature=querySignature(query),key=chartDataKey(query);
-        const existing=context.cache.get(signature);
-        if (existing && (existing.status==='loading' || (!force && ['ready','error'].includes(existing.status)))) {
-            context.raw[key]=existing;
-            if(existing.status==='loading')waiting.push(existing.promise);
-            return;
+    async function sendRequest(spec, options = {}) {
+        const fetchImpl = options.fetchImpl || globalThis.fetch;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const response = await fetchImpl(spec.url, {
+                method: spec.method, headers: spec.headers,
+                body: JSON.stringify(spec.body), signal: options.signal
+            });
+            const raw = await response.text();
+            if (!response.ok) {
+                let serverMessage = '';
+                try { serverMessage = JSON.parse(raw)?.error?.message || ''; } catch (_) {}
+                throw new Error(serverMessage || '조회 요청 실패: HTTP ' + response.status);
+            }
+            if (!raw.trim()) {
+                if (attempt === 0) continue;
+                throw new Error('서버가 빈 응답을 반환했습니다. 잠시 후 새로고침을 다시 눌러주세요.');
+            }
+            let body;
+            try { body = JSON.parse(raw); }
+            catch (_) {
+                if (attempt === 0) continue;
+                throw new Error('서버 응답이 완전한 JSON 형식이 아닙니다. 잠시 후 다시 조회해주세요.');
+            }
+            if (!body || body.query_id !== spec.body.query_id) throw new Error('응답의 쿼리 ID가 요청과 다릅니다.');
+            if (body.ok !== true) throw new Error(body.error?.message || '쿼리 실행에 실패했습니다.');
+            return normalizeRows(spec.body.query_id, body.rows);
         }
-        const item={status:'loading'};
-        pending.push(query);
-        items.set(signature,item);
-        context.cache.set(signature,item);
-        context.raw[key]=item;
-    });
-    renderAll();
-    if (!pending.length) {
-        await Promise.all(waiting);
-        return;
     }
-    const promise=context.schedule(function(){return requestBatch(pending,context);}).then(function(results) {
-        if (context.controller.signal.aborted) return;
-        pending.forEach(function(query) {
-            const signature=querySignature(query),item=items.get(signature);
-            if (context.cache.get(signature)!==item) return;
-            try {
-                const result=results.get(signature);
-                if (!result) throw new Error(query.query_id+': 응답에 해당 쿼리·파라미터의 결과가 없습니다.');
-                if (result.ok===false) throw new Error(result.error && typeof result.error.message==='string' ? result.error.message : query.query_id+': 조회에 실패했습니다.');
-                if (result.ok!==true) throw new Error(query.query_id+': 응답 항목에 ok: true 또는 ok: false가 필요합니다.');
-                item.rows=normalizeRows(query.query_id,result.rows,query.parameters);
-                item.status='ready';
-            } catch (error) {
-                item.status='error';item.message=error.message;
+    function normalizeRows(queryId, rows) {
+        if (!Array.isArray(rows)) throw new Error('응답 rows는 배열이어야 합니다.');
+        return rows.map(source => {
+            if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('응답 행 형식을 확인하세요.');
+            const result = {};
+            contracts[queryId].output.forEach(column => {
+                if (!Object.prototype.hasOwnProperty.call(source, column.name)) throw new Error('응답에 필수 컬럼이 없습니다: ' + column.name);
+                const value = source[column.name];
+                if (value === null) result[column.name] = null;
+                else if (column.type === 'numeric' || column.type === 'bigint') {
+                    if (!['number', 'string'].includes(typeof value) || String(value).trim() === '' || !Number.isFinite(Number(value))) throw new Error('숫자 형식을 확인하세요: ' + column.name);
+                    result[column.name] = Number(value);
+                } else if (column.type === 'boolean') {
+                    if ([true, 'true', 't'].includes(value)) result[column.name] = true;
+                    else if ([false, 'false', 'f'].includes(value)) result[column.name] = false;
+                    else throw new Error('boolean 형식을 확인하세요: ' + column.name);
+                } else if (column.type === 'date') {
+                    if (typeof value !== 'string' || !validDate(value.slice(0, 10))) throw new Error('날짜 형식을 확인하세요: ' + column.name);
+                    result[column.name] = value.slice(0, 10);
+                } else result[column.name] = String(value);
+            });
+            return result;
+        });
+    }
+    function aggregateContent(rows, filters, groupBy) {
+        const groups = new Map();
+        rows.filter(row => (!filters.start || row.calendar_month >= filters.start)
+            && (!filters.endExclusive || row.calendar_month < filters.endExclusive)
+            && (!filters.plan || row.plan_id === filters.plan)
+            && (!filters.age || row.age_band === filters.age)).forEach(row => {
+            const key = row[groupBy];
+            if (!groups.has(key)) groups.set(key, {
+                key, label: groupBy === 'plan_id' ? planCompactName(row.plan_name) : row.age_band,
+                values: new Map()
+            });
+            const group = groups.get(key);
+            group.values.set(row.content_category, (group.values.get(row.content_category) || 0) + row.total_usage_gb);
+        });
+        return [...groups.values()].sort((a, b) => groupBy === 'age_band'
+            ? AGE_ORDER.indexOf(a.key) - AGE_ORDER.indexOf(b.key)
+            : comparePlanNames(a.label, b.label, a.key, b.key));
+    }
+    function aggregatePlans(rows) {
+        const groups = new Map();
+        rows.forEach(row => {
+            if (!groups.has(row.plan_id)) groups.set(row.plan_id, {
+                ...row, total_usage_gb: 0, averageSum: 0, averageCount: 0, allowanceSum: 0, allowanceCount: 0
+            });
+            const group = groups.get(row.plan_id);
+            group.total_usage_gb += row.total_usage_gb || 0;
+            group.subscriber_count = Math.max(group.subscriber_count || 0, row.subscriber_count || 0);
+            if (row.average_usage_per_subscriber_gb !== null) {
+                group.averageSum += row.average_usage_per_subscriber_gb;
+                group.averageCount += 1;
+            }
+            if (row.base_allowance_usage_pct !== null) {
+                group.allowanceSum += row.base_allowance_usage_pct;
+                group.allowanceCount += 1;
             }
         });
-    }).catch(function(error) {
-        if (context.controller.signal.aborted) return;
-        pending.forEach(function(query) {
-            const signature=querySignature(query),item=items.get(signature);
-            if (context.cache.get(signature)===item) {item.status='error';item.message=error.message;}
+        return [...groups.values()].map(group => ({
+            ...group,
+            average_usage_per_subscriber_gb: group.averageCount ? group.averageSum / group.averageCount : null,
+            base_allowance_usage_pct: group.allowanceCount ? group.allowanceSum / group.allowanceCount : null
+        })).sort(comparePlans);
+    }
+    function aggregateDistribution(rows) {
+        const groups = new Map();
+        rows.forEach(row => {
+            const key = row.result_type + '|' + row.group_label;
+            if (!groups.has(key)) groups.set(key, { ...row, customer_count: 0, total_usage_gb: 0 });
+            const group = groups.get(key);
+            group.customer_count += row.customer_count || 0;
+            group.total_usage_gb += row.total_usage_gb || 0;
         });
-    }).finally(function() {
-        if (context === session && !context.controller.signal.aborted) renderAll();
-    });
-    items.forEach(function(item){item.promise=promise;});
-    await Promise.all([promise].concat(waiting));
-}
-function configureMonths(context) {
-    if (context !== session || !loaded('OPS_015') || !loaded('OPS_018')) return;
-    const selected=context.selected_year_month;
-    const range=rowsFor('OPS_015')[0];
-    const min=range && range.min_date, max=range && range.max_date;
-    MONTHS=rowsFor('OPS_018').map(function(row) {
-        const start=monthDate(row.calendar_month), key=start.slice(0,7);
-        const next=new Date(start+'T00:00:00Z'); next.setUTCMonth(next.getUTCMonth()+1);
-        const end=new Date(next.getTime()-86400000).toISOString().slice(0,10);
-        return {k:key,label:key.replace('-','년 ')+'월',partial:!!(min && max && (min > start || max < end))};
-    }).sort(function(a,b) { return a.k.localeCompare(b.k); });
-    cur=MONTHS.findIndex(function(month){return month.k===selected;});
-    // 결과로 월 버튼만 갱신한다. 여기서 추가 요청을 보내거나 선택 월을 바꾸지 않는다.
-    buildSeg(); renderAll();
-}
-function retryCard(id) {
-    if (!session) { connect(); return; }
-    const context=session;
-    const ids={a:['OPS_014','OPS_017'],b:['OPS_025'],c:['OPS_020'],d:['OPS_023'],e:['OPS_015','OPS_018'],f:['OPS_014','OPS_002','OPS_028']}[id];
-    if(!ids)return;
-    const queries=dashboardQueries(context.as_of_date,context.selected_year_month).filter(function(query){
-        return ids.includes(query.query_id) || (['OPS_015','OPS_018'].includes(query.query_id) && !loaded(query.query_id));
-    });
-    loadBatch(context,queries,true).then(function(){
-        if(context===session && !context.controller.signal.aborted)configureMonths(context);
-    });
-}
-function connect(event) {
-    if (event) event.preventDefault();
-    const webhook_url=CONFIG.webhook_url, as_of_date=$('#snapshot-date').value;
-    const message=$('#connection-status');
-    let queries,year_month;
-    try {
-        const url=new URL(webhook_url);
-        if (!['https:','http:'].includes(url.protocol) || url.username || url.password) throw new Error('URL');
-        year_month=session ? session.selected_year_month : initialYearMonth();
-        queries=dashboardQueries(as_of_date,year_month);
-        validateBatch(queries);
-    } catch (error) { message.textContent='웹훅 설정·가입자 수 기준일·월 조회 기간을 확인하세요. '+error.message; return; }
-    // 기준일이 변경되면 해당 쿼리만 보낸다. 같은 조건의 새로고침은 전체를 재조회한다.
-    const force=!!session && session.webhook_url===webhook_url && session.as_of_date===as_of_date;
-    if (!session || session.webhook_url!==webhook_url) {
-        if(session)session.controller.abort();
-        session=createContext(webhook_url,as_of_date);
-        MONTHS=[];M=[];cur=-1;buildSeg();
+        const result = [...groups.values()];
+        const distribution = result.filter(row => row.result_type === 'distribution');
+        const totalCustomers = distribution.reduce((sum, row) => sum + row.customer_count, 0);
+        const totalUsage = distribution.reduce((sum, row) => sum + row.total_usage_gb, 0);
+        result.forEach(row => {
+            row.customer_share_pct = totalCustomers ? row.customer_count / totalCustomers * 100 : null;
+            row.usage_share_pct = totalUsage ? row.total_usage_gb / totalUsage * 100 : null;
+        });
+        return result;
     }
-    session.as_of_date=as_of_date;
-    session.selected_year_month=year_month;
-    session.initializing=true;
-    tipHide();
-    message.textContent='조회 중입니다. 각 카드에서 결과를 확인하세요.';
-    const context=session;
-    loadBatch(context,queries,force).then(function() {
-        if (context !== session || context.controller.signal.aborted) return;
-        return configureMonths(context);
-    }).finally(function() {
-        context.initializing=false;
-        if (context === session && !context.controller.signal.aborted) renderAll();
-    });
-}
-
-
-/* ---------- 툴팁과 연동 하이라이트 ---------- */
-var tip=$('#tip');
-function tipShow(c){
-  tip.replaceChildren();
-  var t=document.createElement('div');t.className='tt';t.textContent=c.title;tip.appendChild(t);
-  c.rows.forEach(function(r){
-    var d=document.createElement('div');d.className='tr';
-    var l=document.createElement('span');l.className='tl';
-    if(r.color){var k=document.createElement('i');k.className='tk';k.style.background=r.color;l.appendChild(k);}
-    l.appendChild(document.createTextNode(r.label));
-    var v=document.createElement('strong');v.textContent=r.value;
-    d.appendChild(l);d.appendChild(v);tip.appendChild(d);
-  });
-  tip.classList.add('on');
-}
-function tipMove(e){
-  var w=tip.offsetWidth,h=tip.offsetHeight,x=e.clientX+14,y=e.clientY+14;
-  if(x+w>innerWidth-8)x=e.clientX-w-14;if(x<8)x=8;
-  if(y+h>innerHeight-8)y=e.clientY-h-14;if(y<8)y=8;
-  tip.style.left=x+'px';tip.style.top=y+'px';
-}
-function tipHide(){tip.classList.remove('on');}
-function attachTip(el,get,focusable){
-  el.addEventListener('pointerenter',function(e){tipShow(get());tipMove(e);});
-  el.addEventListener('pointermove',tipMove);
-  el.addEventListener('pointerleave',tipHide);
-  if(focusable){
-    el.setAttribute('tabindex','0');
-    el.addEventListener('focus',function(){tipShow(get());var r=el.getBoundingClientRect();tipMove({clientX:r.left+r.width/2,clientY:r.top+r.height/2});});
-    el.addEventListener('blur',tipHide);
-  }
-}
-var hlOn=false;
-function clearHL(){if(!hlOn)return;hlOn=false;document.querySelectorAll('.hl,.dim').forEach(function(e){e.classList.remove('hl','dim');});}
-function setHL(age,plan){
-  clearHL();hlOn=true;
-  var sa=age==null?null:String(age),sp=plan==null?null:String(plan);
-  document.querySelectorAll('[data-age],[data-plan]').forEach(function(el){
-    var ea=el.getAttribute('data-age'),ep=el.getAttribute('data-plan'),src=el.hasAttribute('data-src');
-    var mA=sa!==null&&ea!==null,mP=sp!==null&&ep!==null;
-    if(!mA&&!mP)return;
-    if(src){if((mA&&ea===sa)||(mP&&ep===sp))el.classList.add('hl');}
-    else{if(!((!mA||ea===sa)&&(!mP||ep===sp)))el.classList.add('dim');}
-  });
-}
-
-/* ---------- 차트 등록과 표 보기 ---------- */
-var charts=[];
-function renderTable(el,spec){
-  el.replaceChildren();
-  var tb=document.createElement('table'),th=document.createElement('thead'),tr=document.createElement('tr');
-  spec.cols.forEach(function(c){var h=document.createElement('th');h.scope='col';h.textContent=c;tr.appendChild(h);});
-  th.appendChild(tr);tb.appendChild(th);
-  var body=document.createElement('tbody');
-  spec.rows.forEach(function(r){var row=document.createElement('tr');r.forEach(function(v){var d=document.createElement('td');d.textContent=v;row.appendChild(d);});body.appendChild(row);});
-  tb.appendChild(body);el.appendChild(tb);
-}
-function reg(id,opt){
-  var card=$('#card-'+id),plot=$('.plot',card),tbl=$('.tbl',card),btn=$('.tbtn',card);
-  var c={id:id,showTable:false,lw:0};
-  c.render=function(){
-    var state=cardStates[id] || {status:'idle',message:'설정 후 조회하세요.'};
-    card.setAttribute('aria-busy',String(state.status === 'loading'));
-    if(btn)btn.disabled=state.status !== 'ready';
-    if(state.status !== 'ready'){
-      plot.hidden=false;tbl.hidden=true;plot.replaceChildren();tbl.replaceChildren();
-      var legend=$('.legend',card);if(legend && id !== 'e' && id !== 'f')legend.replaceChildren();
-      var box=document.createElement('div');box.className='card-status '+state.status;box.setAttribute('role','status');
-      var text=document.createElement('span');text.textContent=state.message;box.appendChild(text);
-      if(state.status === 'error' || state.status === 'empty'){
-        var retry=document.createElement('button');retry.type='button';retry.className='tbtn';retry.textContent='다시 조회';retry.addEventListener('click',function(){retryCard(id);});box.appendChild(retry);
-      }
-      plot.appendChild(box);return;
+    function filterRowsForDisplay(sectionKey, rows, selection) {
+        if (['subscribers', 'families', 'plans'].includes(sectionKey)) return rows;
+        const start = monthStart(selection.startMonth);
+        const endExclusive = nextMonth(selection.endMonth);
+        return rows.filter(row => row.calendar_month >= start && row.calendar_month < endExclusive);
     }
-    if(c.showTable&&opt.table){plot.hidden=true;tbl.hidden=false;renderTable(tbl,opt.table());return;}
-    plot.hidden=false;tbl.hidden=true;
-    var w=Math.max(plot.clientWidth||600,opt.minW||0);
-    plot.replaceChildren();opt.draw(plot,w);
-  };
-  if(btn)btn.addEventListener('click',function(){c.showTable=!c.showTable;btn.setAttribute('aria-pressed',String(c.showTable));btn.textContent=c.showTable?'차트로 보기':'표로 보기';c.render();});
-  if(window.ResizeObserver){
-    var pend=0;
-    new ResizeObserver(function(){
-      var w=plot.clientWidth;if(!w||w===c.lw)return;c.lw=w;
-      if(pend)return;pend=requestAnimationFrame(function(){pend=0;c.render();});
-    }).observe(plot);
-  }
-  charts.push(c);
-}
 
-/* ---------- 공통: 요금제 가로축(월정액 + 계열 괄호) ---------- */
-function planAxis(svg,L,cw,y0,caption,showInf){
-  T(svg,L-8,y0+12,caption,'','end');
-  PLANS.forEach(function(p,i){
-    var x=L+i*cw+cw/2;
-    var t=T(svg,x,y0+12,String(+(p.fee/10000).toFixed(1)),'','middle');
-    t.style.fontSize='10px';t.setAttribute('data-plan',i);t.setAttribute('data-src','1');
-    if(showInf&&p.lim==null){var u=T(svg,x,y0+25,'∞','t2','middle');u.style.fontSize='12px';}
-  });
-  var yb=y0+(showInf?34:22);
-  FAM.forEach(function(fn,f){
-    var idx=famPlans[f];
-    var x1=L+idx[0]*cw+2,x2=L+(idx[idx.length-1]+1)*cw-2;
-    S('line',{x1:x1,x2:x2,y1:yb,y2:yb,'class':'axl'},svg);
-    T(svg,(x1+x2)/2,yb+14,fn,'t2','middle');
-  });
-}
-
-/* ---------- A: 연령대 x 요금제 히트맵 ---------- */
-function drawA(host,W){
-  var L=96,Rm=8,T0=6,rowH=36,gap=2,cols=PLANS.length;
-  var cw=(W-L-Rm)/cols,H=T0+AGE.length*rowH+50;
-  var svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'연령대별 요금제 가입 비중 히트맵. 자세한 값은 표로 보기에서 확인합니다.'},host);
-  var pct=SHARES;
-  var maxP=Math.max.apply(null,pct.map(function(r){return Math.max.apply(null,r);}));
-  AGE.forEach(function(ag,a){
-    var y=T0+a*rowH;
-    var lb=T(svg,L-10,y+rowH/2,ag,'t2 tb','end');lb.setAttribute('data-age',a);lb.setAttribute('data-src','1');
-    T(svg,L-10,y+rowH/2+12,'n='+fmt(AGE_N[a]),'','end').style.fontSize='10px';
-    PLANS.forEach(function(p,pi){
-      var n=CNT[a][pi],v=pct[a][pi];
-      var b=n?Math.min(7,Math.max(1,Math.ceil(v/maxP*7))):0;
-      var x=L+pi*cw;
-      var r=S('rect',{x:x+gap/2,y:y+gap/2,width:cw-gap,height:rowH-gap,rx:3,'data-age':a,'data-plan':pi,'data-src':'1'},svg);
-      r.style.fill=b?'var(--q'+b+')':'var(--empty)';
-      if(n){
-        var tx=T(svg,x+cw/2,y+rowH/2+4,String(n),'','middle');
-        tx.style.fill='var(--qt'+b+')';tx.style.fontSize='10px';tx.setAttribute('pointer-events','none');
-      }
-      attachTip(r,function(){return {title:AGE[a]+'세 · '+p.name,rows:[
-        {label:'연령대 내 비중',value:v === null ? '-' : v.toFixed(1)+'%'},
-        {label:'가입자',value:fmt(n)+'명'},
-        {label:'월정액',value:fmt(p.fee)+'원'}]};},false);
-      r.addEventListener('pointerenter',function(){setHL(a,pi);});
-      r.addEventListener('pointerleave',clearHL);
-    });
-  });
-  planAxis(svg,L,cw,T0+AGE.length*rowH+4,'월정액(만원)',false);
-  var lg=$('#lg-a');
-  lg.replaceChildren();
-  var s1=document.createElement('span');s1.textContent='낮음';
-  var rp=document.createElement('span');rp.className='ramp';
-  for(var q=1;q<=7;q++){var i=document.createElement('i');i.style.background='var(--q'+q+')';rp.appendChild(i);}
-  var s2=document.createElement('span');s2.textContent='높음 (최대 '+maxP.toFixed(1)+'%)';
-  var s3=document.createElement('span');s3.textContent='회색 칸 = 가입자 없음';
-  lg.appendChild(s1);lg.appendChild(rp);lg.appendChild(s2);lg.appendChild(s3);
-}
-function tableA(){
-  var cols=['요금제','월정액(만원)'].concat(AGE.map(function(a){return a+'세';}));
-  var rows=PLANS.map(function(p,i){
-    return [p.name,String(+(p.fee/10000).toFixed(1))].concat(AGE.map(function(_,a){return fmt(CNT[a][i])+'명 ('+valueText(SHARES[a][i],1)+'%)';}));
-  });
-  return {cols:cols,rows:rows};
-}
-
-/* ---------- B: 연령대별 카테고리 구성 ---------- */
-function catColor(ci){return ci===5?'var(--s0)':'var(--s'+(ci+1)+')';}
-function drawB(host,W){
-  var L=70,Rm=8,rowH=40,gap=2,T0=2,H=T0+AGE.length*rowH+2;
-  var svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'연령대별 콘텐츠 카테고리 사용 구성비. 자세한 값은 표로 보기에서 확인합니다.'},host);
-  var d=M[cur].age;
-  AGE.forEach(function(ag,a){
-    var y=T0+a*rowH;
-    var g=S('g',{'data-age':a},svg);
-    var lb=T(g,L-10,y+rowH/2,ag,'t2 tb','end');
-    if(!d[a].total)T(g,L,y+rowH/2+4,'사용량 없음','t2');
-    var bw=W-L-Rm-(CAT.length-1)*gap,x=L;
-    d[a].sh.forEach(function(s,ci){
-      var w=bw*s;
-      var r=S('rect',{x:x,y:y+6,width:w,height:rowH-12,rx:2},g);
-      r.style.fill=catColor(ci);
-      if(w>=34){
-        var tx=T(g,x+w/2,y+rowH/2+4,Math.round(s*100)+'%','','middle');
-        tx.style.fill='var(--bt'+(ci+1)+')';tx.setAttribute('pointer-events','none');
-      }
-      attachTip(r,function(){return {title:ag+'세 · '+CAT[ci],rows:[
-        {label:'구성비',value:(s*100).toFixed(1)+'%',color:catColor(ci)},
-        {label:'사용량',value:fmt(d[a].gb[ci])+' GB'},
-        {label:'연령대 총사용량',value:fmt(d[a].total)+' GB'}]};},true);
-      r.addEventListener('pointerenter',function(){setHL(a,null);});
-      r.addEventListener('pointerleave',clearHL);
-      x+=w+gap;
-    });
-  });
-  var lg=$('#lg-b');
-  if(!lg.childNodes.length){
-    CAT.forEach(function(c,ci){
-      var s=document.createElement('span');var sw=document.createElement('i');sw.className='sw';sw.style.background=catColor(ci);
-      s.appendChild(sw);s.appendChild(document.createTextNode(c));lg.appendChild(s);
-    });
-  }
-}
-function tableB(){
-  var d=M[cur].age;
-  return {cols:['연령대','총사용량(GB)'].concat(CAT.map(function(c){return c+' 비중';})),
-    rows:AGE.map(function(ag,a){return [ag+'세',fmt(d[a].total)].concat(d[a].sh.map(function(s){return (s*100).toFixed(1)+'%';}));})};
-}
-
-/* ---------- C: 사용량 집중도 ---------- */
-function drawC(host,W){
-  var H=260,L=44,Rm=18,T0=14,B0=40,pw=W-L-Rm,ph=H-T0-B0;
-  function X(p){return L+pw*p/100;}function Y(v){return T0+ph*(1-v/100);}
-  var svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'사용량 집중도 곡선. 자세한 값은 표로 보기에서 확인합니다.'},host);
-  [0,25,50,75,100].forEach(function(v){
-    S('line',{x1:L,x2:W-Rm,y1:Y(v),y2:Y(v),'class':v===0?'axl':'grd'},svg);
-    T(svg,L-8,Y(v)+4,v+'%','','end');
-  });
-  [0,20,40,60,80,100].forEach(function(p){T(svg,X(p),H-B0+16,p+'%','','middle');});
-  T(svg,L+pw/2,H-6,'사용량 상위 고객 (누적 %)','t2','middle');
-  var mo=M[cur];
-  var points=mo.conc.filter(function(point){return point.share !== null;});
-  var pts=[{p:0,share:0}].concat(points);
-  var area='M'+X(0)+' '+Y(0);
-  pts.forEach(function(q){area+=' L'+X(q.p)+' '+Y(q.share*100);});
-  area+=' Z';
-  var wash=S('path',{d:area,stroke:'none'},svg);wash.style.fill='var(--s1)';wash.style.opacity='.1';
-  S('line',{x1:X(0),y1:Y(0),x2:X(100),y2:Y(100),'class':'axl'},svg);
-  T(svg,X(66),Y(52),'균등 분배','','start').setAttribute('transform','rotate(-'+(Math.atan2(ph,pw)*180/Math.PI).toFixed(1)+' '+X(66)+' '+Y(52)+')');
-  var path='';pts.forEach(function(q,i){path+=(i?' L':'M')+X(q.p)+' '+Y(q.share*100);});
-  var ln=S('path',{d:path,fill:'none','stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round'},svg);ln.style.stroke='var(--s1)';
-  [1,5,10,20,50].forEach(function(p){
-    var q=mo.conc.filter(function(o){return o.p===p;})[0];
-    if(!q || q.share === null)return;
-    var c=S('circle',{cx:X(p),cy:Y(q.share*100),r:4,'stroke-width':2},svg);c.style.fill='var(--s1)';c.style.stroke='var(--surface)';
-  });
-  var t10=mo.conc.filter(function(o){return o.p===10;})[0];
-  if(t10 && t10.share !== null)T(svg,X(10)+10,Y(t10.share*100)+18,'상위 10% → '+(t10.share*100).toFixed(1)+'%','t2 tb','start');
-  var cross=S('line',{y1:T0,y2:T0+ph,'class':'axl'},svg);cross.style.display='none';cross.style.stroke='var(--ink2)';
-  var dot=S('circle',{r:5,'stroke-width':2},svg);dot.style.display='none';dot.style.fill='var(--s1)';dot.style.stroke='var(--surface)';
-  var ov=S('rect',{x:L,y:T0,width:pw,height:ph,fill:'transparent'},svg);
-  function nearest(e){
-    var b=svg.getBoundingClientRect();var px=(e.clientX-b.left-L)/pw*100;
-    var best=points[0],bd=1e9;points.forEach(function(o){var dd=Math.abs(o.p-px);if(dd<bd){bd=dd;best=o;}});return best;
-  }
-  function show(o,e){
-    cross.setAttribute('x1',X(o.p));cross.setAttribute('x2',X(o.p));cross.style.display='';
-    dot.setAttribute('cx',X(o.p));dot.setAttribute('cy',Y(o.share*100));dot.style.display='';
-    tipShow({title:'상위 '+o.p+'% 고객 ('+fmt(o.k)+'명)',rows:[
-      {label:'사용량 점유율',value:(o.share*100).toFixed(1)+'%',color:'var(--s1)'},
-      {label:'사용량',value:fmt(o.gb)+' / '+fmt(o.total)+' GB'}]});
-    tipMove(e);
-  }
-  ov.addEventListener('pointermove',function(e){show(nearest(e),e);});
-  ov.addEventListener('pointerleave',function(){cross.style.display='none';dot.style.display='none';tipHide();});
-}
-function tableC(){
-  var mo=M[cur];
-  return {cols:['상위 고객 비율','고객 수(명)','사용량(GB)','사용량 점유율'],
-    rows:mo.conc.map(function(o){return ['상위 '+o.p+'%',fmt(o.k),fmt(o.gb),o.share===null?'-':(o.share*100).toFixed(1)+'%'];})};
-}
-
-/* ---------- D: 결합·인터넷 보유 가족 ---------- */
-function drawD(host,W){
-  var total=FAMGRP.reduce(function(s,g){return s+g.fam;},0);
-  var H=46,gap=2,bw=W-(FAMGRP.length-1)*gap,x=0;
-  var svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'결합과 인터넷 보유 상태별 가족 수'},host);
-  FAMGRP.forEach(function(g){
-    var w=bw*g.fam/total;
-    var r=S('rect',{x:x,y:8,width:w,height:30,rx:3},svg);r.style.fill=g.color;
-    if(w>=70){var tx=T(svg,x+w/2,27,fmt(g.fam)+'곳','tb','middle');tx.style.fill=g.tc;tx.setAttribute('pointer-events','none');}
-    attachTip(r,function(){return {title:g.name,rows:[
-      {label:'가족 수',value:fmt(g.fam)+'곳 ('+(g.fam/total*100).toFixed(1)+'%)',color:g.color},
-      {label:'구성원 수',value:fmt(g.mem)+'명'},
-      {label:'평균 가족 규모',value:valueText(g.average,2)+'명'}]};},true);
-    x+=w+gap;
-  });
-  var rows=document.createElement('div');rows.className='fam-rows';
-  FAMGRP.forEach(function(g){
-    var r=document.createElement('div');r.className='fam-row';
-    var sw=document.createElement('i');sw.className='sw';sw.style.background=g.color;
-    var nm=document.createElement('b');nm.textContent=g.name;
-    var nu=document.createElement('span');nu.className='num';nu.textContent='가족 '+fmt(g.fam)+'곳 · '+fmt(g.mem)+'명';
-    r.appendChild(sw);r.appendChild(nm);r.appendChild(nu);
-    var sub=document.createElement('span');sub.className='sub';
-    sub.textContent='평균 가족 규모 '+valueText(g.average,2)+'명'+(g.note?' · '+g.note:'');
-    r.appendChild(sub);rows.appendChild(r);
-  });
-  host.appendChild(rows);
-}
-
-/* ---------- E: 월별 평균 vs 중앙값 ---------- */
-function drawE(host,W){
-    const L=60,Rm=40,T0=18,ph=150,count=M.length;
-    W=Math.max(W,count*82+L+Rm);
-    const pw=W-L-Rm,H=T0+ph+58;
-    const ymax=Math.max(5,Math.ceil(Math.max.apply(null,M.map(function(row){return row.avg || 0;}))/5)*5);
-    function X(index){return L+pw*(index+.5)/count;}
-    function Y(value){return T0+ph*(1-value/ymax);}
-    const svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'월별 평균과 중앙값 사용량 및 이용자 수'},host);
-    const band=S('rect',{x:X(cur)-pw/count/2,y:T0,width:pw/count,height:ph},svg);band.style.fill='var(--sel)';
-    for(let value=0;value<=ymax;value+=Math.max(5,Math.ceil(ymax/5/5)*5)){
-        S('line',{x1:L,x2:W-Rm,y1:Y(value),y2:Y(value),'class':'grd'},svg);T(svg,L-8,Y(value)+4,String(value),'','end');
-    }
-    T(svg,L-8,12,'GB','','end');
-    M.forEach(function(row,index){
-        T(svg,X(index),T0+ph+18,row.m.k,'t2','middle');
-        T(svg,X(index),T0+ph+32,row.m.partial?'부분 월':'기간 내 월','','middle');
-        T(svg,X(index),T0+ph+48,fmt(row.users)+'명','t2','middle');
-    });
-    [['avg','var(--s1)'],['median','var(--s2)']].forEach(function(series){
-        for(let index=1;index<count;index++){
-            const line=S('path',{d:'M'+X(index-1)+' '+Y(M[index-1][series[0]])+' L'+X(index)+' '+Y(M[index][series[0]]),fill:'none','stroke-width':2},svg);
-            line.style.stroke=series[1];if(M[index-1].m.partial || M[index].m.partial)line.style.opacity='.35';
+    function mount(doc) {
+        const states = new Map();
+        const el = (tag, text, className) => {
+            const node = doc.createElement(tag);
+            if (text !== undefined) node.textContent = text;
+            if (className) node.className = className;
+            return node;
+        };
+        const number = (value, decimals = 2) => value === null || value === undefined
+            ? '—' : Number(value).toLocaleString('ko-KR', { maximumFractionDigits: decimals });
+        const defaultsDate = new Date();
+        const previous = new Date(Date.UTC(defaultsDate.getFullYear(), defaultsDate.getMonth(), 0));
+        const defaults = {
+            startMonth: previous.toISOString().slice(0, 4) + '-01',
+            endMonth: previous.toISOString().slice(0, 7)
+        };
+        doc.getElementById('webhook-url').value = DEFAULT_ENDPOINT;
+        const startMonthInput = doc.getElementById('start-month');
+        const endMonthInput = doc.getElementById('end-month');
+        const globalForm = doc.getElementById('global-filter-form');
+        const refreshButton = doc.getElementById('global-refresh');
+        const globalStatus = doc.getElementById('global-status');
+        startMonthInput.value = defaults.startMonth;
+        endMonthInput.value = defaults.endMonth;
+        let appliedSelection = { ...defaults };
+        const currentSelection = () => ({ ...appliedSelection });
+        const pendingSelection = () => ({ startMonth: startMonthInput.value, endMonth: endMonthInput.value });
+        const periodLabel = selection => selection.startMonth + ' ~ ' + selection.endMonth;
+        function markPeriodPending() {
+            globalStatus.className = 'status';
+            globalStatus.textContent = '기간이 변경되었습니다. 새로고침을 눌러 적용하세요.';
         }
-        M.forEach(function(row,index){
-            const dot=S('circle',{cx:X(index),cy:Y(row[series[0]]),r:4.5,'stroke-width':2},svg);
-            dot.style.fill=row.m.partial?'var(--surface)':series[1];dot.style.stroke=series[1];
+        let batchId = 0;
+
+        function svgNode(tag, attrs, parent, text) {
+            const node = doc.createElementNS('http://www.w3.org/2000/svg', tag);
+            Object.entries(attrs || {}).forEach(([key, value]) => node.setAttribute(key, value));
+            if (text !== undefined) node.textContent = text;
+            if (parent) parent.appendChild(node);
+            return node;
+        }
+        function chart(block, title, height, width = 760) {
+            block.replaceChildren(el('div', title, 'chart-title'));
+            const plot = el('div', undefined, 'plot');
+            const svg = svgNode('svg', { width, height, viewBox: '0 0 ' + width + ' ' + height, role: 'img', 'aria-label': title }, plot);
+            block.appendChild(plot);
+            return svg;
+        }
+        function empty(block, title, message = '표시할 사용량 기록이 없습니다.') {
+            block.replaceChildren(el('div', title, 'chart-title'), el('div', message, 'empty'));
+        }
+        function legend(block, labels, colors = COLORS) {
+            const node = el('div', undefined, 'legend');
+            labels.forEach((label, index) => {
+                const item = el('span');
+                const swatch = el('i', undefined, 'swatch');
+                swatch.style.background = colors[index % colors.length];
+                item.append(swatch, doc.createTextNode(label));
+                node.append(item);
+            });
+            block.append(node);
+        }
+        const tooltip = doc.getElementById('analysis-tip');
+        function hideTip() { tooltip.hidden = true; }
+        function attachTip(node, getContent) {
+            function show(event) {
+                const content = getContent();
+                tooltip.replaceChildren(el('div', content.title, 'tt'));
+                content.rows.forEach(item => {
+                    const row = el('div', undefined, 'tr');
+                    row.append(el('span', item.label), el('strong', item.value));
+                    tooltip.append(row);
+                });
+                tooltip.hidden = false;
+                const bounds = node.getBoundingClientRect();
+                const x = event?.clientX ?? bounds.left + bounds.width / 2;
+                const y = event?.clientY ?? bounds.top + bounds.height / 2;
+                const view = doc.defaultView;
+                tooltip.style.left = Math.max(8, Math.min(x + 14, view.innerWidth - tooltip.offsetWidth - 8)) + 'px';
+                tooltip.style.top = Math.max(8, Math.min(y + 14, view.innerHeight - tooltip.offsetHeight - 8)) + 'px';
+            }
+            node.setAttribute('tabindex', '0');
+            node.addEventListener('pointerenter', show);
+            node.addEventListener('pointermove', show);
+            node.addEventListener('pointerleave', hideTip);
+            node.addEventListener('focus', () => show());
+            node.addEventListener('blur', hideTip);
+        }
+        const plotWidth = (block, minimum = 460) => Math.max(block.clientWidth || 600, minimum);
+        function text(svg, x, y, value, anchor = 'start', color = 'var(--muted)', bold = false) {
+            const node = svgNode('text', { x, y, 'text-anchor': anchor, fill: color }, svg, value);
+            if (bold) node.style.fontWeight = '600';
+            return node;
+        }
+        function planLabels(svg, plans, left, columnWidth, top, showUnlimited) {
+            const groups = [];
+            plans.forEach((plan, index) => {
+                const x = left + (index + .5) * columnWidth;
+                const family = planFamilyName(plan.plan_name);
+                const capacity = String(plan.plan_name).match(/\d+(?:\.\d+)?\s*(?:GB|MB|TB)/i)?.[0];
+                const price = String(plan.plan_name).match(/\d+(?:\.\d+)?\s*만원/i)?.[0];
+                const variant = showUnlimited && plan.is_unlimited ? '무제한'
+                    : plan.data_limit_gb !== null && plan.data_limit_gb !== undefined ? number(plan.data_limit_gb) + 'GB'
+                        : capacity || price || '';
+                if (variant) text(svg, x, top + 15, variant, 'middle', 'var(--ink2)');
+                const previous = groups[groups.length - 1];
+                if (previous && previous.name === family) previous.end = index;
+                else groups.push({ name: family, start: index, end: index });
+            });
+            groups.forEach(group => {
+                const startX = left + group.start * columnWidth + 4;
+                const endX = left + (group.end + 1) * columnWidth - 4;
+                const centerX = (startX + endX) / 2;
+                svgNode('line', { x1: startX, x2: endX, y1: top + 29, y2: top + 29, stroke: 'var(--axis)' }, svg);
+                const maxChars = Math.max(5, Math.floor((endX - startX) / 7));
+                const shown = group.name.length > maxChars ? group.name.slice(0, Math.max(4, maxChars - 1)) + '…' : group.name;
+                const label = text(svg, centerX, top + 47, shown, 'middle', 'var(--ink2)', true);
+                svgNode('title', {}, label, group.name);
+            });
+        }
+        function drawHeatmap(block, rows) {
+            const plans = [...new Map(rows.map(row => [row.plan_id, row])).values()].sort(comparePlans);
+            if (!plans.length) return empty(block, '연령대 × 요금제 가입 비중');
+            const left = 96, right = 8, top = 6, rowHeight = 36, gap = 2;
+            const width = plotWidth(block, left + plans.length * 70 + right);
+            const columnWidth = (width - left - right) / plans.length;
+            const maxShare = Math.max(0, ...rows.map(row => row.age_band_share_pct ?? 0));
+            const svg = chart(block, '연령대 × 요금제 가입 비중', top + AGE_ORDER.length * rowHeight + 62, width);
+            const cells = new Map(rows.map(row => [row.age_band + '|' + row.plan_id, row]));
+            AGE_ORDER.forEach((age, ageIndex) => {
+                const y = top + ageIndex * rowHeight;
+                const total = rows.filter(row => row.age_band === age).reduce((sum, row) => sum + row.subscriber_count, 0);
+                text(svg, left - 10, y + 16, age, 'end', 'var(--ink2)', true);
+                text(svg, left - 10, y + 29, 'n=' + number(total, 0), 'end').style.fontSize = '10px';
+                plans.forEach((plan, planIndex) => {
+                    const row = cells.get(age + '|' + plan.plan_id);
+                    const share = row?.age_band_share_pct;
+                    const bucket = row?.subscriber_count && maxShare > 0 ? Math.min(7, Math.max(1, Math.ceil(share / maxShare * 7))) : 0;
+                    const x = left + planIndex * columnWidth;
+                    const cell = svgNode('rect', { x: x + gap / 2, y: y + gap / 2, width: columnWidth - gap, height: rowHeight - gap, rx: 3, fill: bucket ? 'var(--q' + bucket + ')' : 'var(--empty)' }, svg);
+                    if (row?.subscriber_count) {
+                        const label = text(svg, x + columnWidth / 2, y + 22, number(row.subscriber_count, 0), 'middle', 'var(--qt' + bucket + ')');
+                        label.style.fontSize = '10px'; label.setAttribute('pointer-events', 'none');
+                    }
+                    attachTip(cell, () => ({ title: age + '세 · ' + plan.plan_name, rows: [
+                        { label: '가입자', value: row ? number(row.subscriber_count, 0) + '명' : '집계 행 없음' },
+                        { label: '연령대 내 비중', value: share === null || share === undefined ? '—' : number(share, 1) + '%' }
+                    ] }));
+                });
+            });
+            planLabels(svg, plans, left, columnWidth, top + AGE_ORDER.length * rowHeight + 4, false);
+        }
+        function drawPlanComparison(block, rows) {
+            if (!rows.length) return empty(block, '요금제별 평균 사용량과 기본 제공량');
+            const left = 58, right = 8, top = 14, plotHeight = 230;
+            const width = plotWidth(block, left + rows.length * 70 + right);
+            const columnWidth = (width - left - right) / rows.length;
+            const values = rows.flatMap(row => [row.average_usage_per_subscriber_gb, row.is_unlimited ? null : row.data_limit_gb]).filter(value => value !== null);
+            const max = Math.max(120, Math.ceil(Math.max(0, ...values) / 30) * 30);
+            const step = Math.max(30, Math.ceil(max / 5 / 30) * 30);
+            const y = value => top + plotHeight * (1 - value / max);
+            const svg = chart(block, '요금제별 평균 사용량과 기본 제공량', top + plotHeight + 68, width);
+            for (let value = 0; value <= max; value += step) {
+                svgNode('line', { x1: left, x2: width - right, y1: y(value), y2: y(value), stroke: value ? 'var(--grid)' : 'var(--axis)' }, svg);
+                text(svg, left - 8, y(value) + 4, value, 'end');
+            }
+            text(svg, left - 8, top - 2, 'GB', 'end');
+            rows.forEach((row, index) => {
+                const average = row.average_usage_per_subscriber_gb;
+                const base = row.is_unlimited ? null : row.data_limit_gb;
+                const over = average !== null && base !== null && average > base;
+                const x = left + index * columnWidth;
+                const group = svgNode('g', {}, svg);
+                if (row.subscriber_count < 10) group.style.opacity = '.45';
+                const baseBarWidth = Math.min(34, Math.max(12, columnWidth - 10));
+                if (base !== null) svgNode('rect', { x: x + (columnWidth - baseBarWidth) / 2, y: y(base), width: baseBarWidth, height: y(0) - y(base), rx: 2, fill: 'var(--comparison-gray)' }, group);
+                const barWidth = Math.min(18, baseBarWidth * .55);
+                if (average !== null) svgNode('rect', { x: x + (columnWidth - barWidth) / 2, y: y(average), width: barWidth, height: y(0) - y(average), rx: 2, fill: over ? 'var(--serious)' : 'var(--comparison-blue)' }, group);
+                if (over) text(group, x + columnWidth / 2, y(average) - 4, '▲', 'middle', 'var(--serious)');
+                const hit = svgNode('rect', { x, y: top, width: columnWidth, height: plotHeight, fill: 'transparent' }, group);
+                attachTip(hit, () => ({ title: row.plan_name, rows: [
+                    { label: '가입자당 평균', value: average === null ? '—' : number(average, 1) + 'GB' },
+                    { label: '기본 제공량', value: row.is_unlimited ? '무제한' : base === null ? '정보 없음' : number(base) + 'GB' },
+                    { label: '가입자', value: number(row.subscriber_count, 0) + '명' },
+                    { label: '기본 제공량 대비', value: row.base_allowance_usage_pct === null ? '—' : number(row.base_allowance_usage_pct, 1) + '%' }
+                ] }));
+            });
+            planLabels(svg, rows, left, columnWidth, top + plotHeight + 4, true);
+            const guide = el('div', undefined, 'legend');
+            [['기본 제공량', 'var(--comparison-gray)'], ['가입자당 평균사용량', 'var(--comparison-blue)'], ['평균이 기본 제공량보다 높음 ▲', 'var(--serious)']].forEach(([name, color]) => {
+                const item = el('span'), swatch = el('i', undefined, 'swatch'); swatch.style.background = color; item.append(swatch, doc.createTextNode(name)); guide.append(item);
+            });
+            guide.append(el('span', '흐리게 = 가입자 10명 미만 · ∞ = 무제한')); block.append(guide);
+        }
+        function drawCategoryStacked(block, title, groups, asPercent) {
+            if (!groups.length) return empty(block, title);
+            const keys = ['video', 'short_form', 'sns', 'game', 'web', 'other'];
+            const names = ['영상', '숏폼', 'SNS', '게임', '웹', '기타'];
+            const prepared = groups.map(group => {
+                const values = keys.map(() => 0);
+                group.values.forEach((value, category) => { const index = keys.slice(0, 5).indexOf(category); values[index < 0 ? 5 : index] += value; });
+                return { ...group, values, total: values.reduce((sum, value) => sum + value, 0) };
+            });
+            const left = Math.max(70, Math.min(190, Math.max(...groups.map(group => group.label.length)) * 7 + 12));
+            const width = plotWidth(block), right = 8, rowHeight = 40, gap = 2;
+            const max = asPercent ? 100 : Math.max(1, ...prepared.map(group => group.total));
+            const svg = chart(block, title, prepared.length * rowHeight + 8, width);
+            prepared.forEach((group, index) => {
+                const y = index * rowHeight + 2;
+                text(svg, left - 10, y + 20, group.label, 'end', 'var(--ink2)', true);
+                if (!group.total) { text(svg, left, y + 24, '사용량 없음', 'start', 'var(--ink2)'); return; }
+                const barWidth = width - left - right - (keys.length - 1) * gap;
+                let x = left;
+                group.values.forEach((raw, categoryIndex) => {
+                    const share = raw / group.total * 100;
+                    const barValue = asPercent ? share : raw;
+                    const segmentWidth = barValue / max * barWidth;
+                    if (!segmentWidth) return;
+                    const segment = svgNode('rect', { x, y: y + 6, width: segmentWidth, height: rowHeight - 12, rx: 2, fill: COLORS[categoryIndex] }, svg);
+                    if (segmentWidth >= 34) {
+                        const label = text(svg, x + segmentWidth / 2, y + 24, asPercent ? Math.round(share) + '%' : number(raw, 0), 'middle', 'var(--bt' + (categoryIndex + 1) + ')');
+                        label.setAttribute('pointer-events', 'none');
+                    }
+                    attachTip(segment, () => ({ title: group.label + ' · ' + names[categoryIndex], rows: [
+                        { label: '구성비', value: number(share, 1) + '%' }, { label: '사용량', value: number(raw) + 'GB' },
+                        { label: '고객군 총사용량', value: number(group.total) + 'GB' }
+                    ] }));
+                    x += segmentWidth + gap;
+                });
+            });
+            legend(block, names);
+        }
+        function drawMonthlyTrend(block, rows) {
+            const values = rows.flatMap(row => [row.average_monthly_usage_gb, row.median_monthly_usage_gb]).filter(value => value !== null);
+            if (!rows.length || !values.length) return empty(block, '월별 평균과 중앙값');
+            const left = 60, right = 40, top = 18, plotHeight = 150;
+            const width = plotWidth(block, rows.length * 82 + left + right), plotWidthValue = width - left - right;
+            const max = Math.max(5, Math.ceil(Math.max(...values) / 5) * 5);
+            const step = Math.max(5, Math.ceil(max / 5 / 5) * 5);
+            const x = index => left + plotWidthValue * (index + .5) / rows.length;
+            const y = value => top + plotHeight * (1 - value / max);
+            const svg = chart(block, '월별 고객당 평균과 중앙값', top + plotHeight + 58, width);
+            for (let value = 0; value <= max; value += step) {
+                svgNode('line', { x1: left, x2: width - right, y1: y(value), y2: y(value), stroke: 'var(--grid)' }, svg);
+                text(svg, left - 8, y(value) + 4, value, 'end');
+            }
+            text(svg, left - 8, 12, 'GB', 'end');
+            rows.forEach((row, index) => {
+                text(svg, x(index), top + plotHeight + 18, row.calendar_month.slice(0, 7), 'middle', 'var(--ink2)');
+                text(svg, x(index), top + plotHeight + 32, row.recorded_customer_count ? '기록 고객' : '기록 없음', 'middle');
+                text(svg, x(index), top + plotHeight + 48, number(row.recorded_customer_count, 0) + '명', 'middle', 'var(--ink2)');
+            });
+            const monthlyColors = ['var(--serious)', 'var(--comparison-blue)'];
+            ['average_monthly_usage_gb', 'median_monthly_usage_gb'].forEach((key, seriesIndex) => {
+                for (let index = 1; index < rows.length; index++) {
+                    if (rows[index - 1][key] === null || rows[index][key] === null) continue;
+                    svgNode('path', { d: 'M' + x(index - 1) + ' ' + y(rows[index - 1][key]) + ' L' + x(index) + ' ' + y(rows[index][key]), fill: 'none', stroke: monthlyColors[seriesIndex], 'stroke-width': 2.5 }, svg);
+                }
+                rows.forEach((row, index) => { if (row[key] !== null) svgNode('circle', { cx: x(index), cy: y(row[key]), r: 4.5, fill: monthlyColors[seriesIndex], stroke: monthlyColors[seriesIndex], 'stroke-width': 2 }, svg); });
+            });
+            rows.forEach((row, index) => {
+                const hit = svgNode('rect', { x: left + plotWidthValue * index / rows.length, y: top, width: plotWidthValue / rows.length, height: plotHeight + 55, fill: 'transparent' }, svg);
+                hit.setAttribute('role', 'button');
+                hit.setAttribute('aria-label', row.calendar_month.slice(0, 7) + ' 표시');
+                hit.style.cursor = 'pointer';
+                const selectMonth = () => {
+                    const month = row.calendar_month.slice(0, 7);
+                    startMonthInput.value = month;
+                    endMonthInput.value = month;
+                    markPeriodPending();
+                };
+                hit.addEventListener('click', selectMonth);
+                hit.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectMonth(); }
+                });
+                attachTip(hit, () => ({ title: row.calendar_month.slice(0, 7), rows: [
+                    { label: '평균', value: number(row.average_monthly_usage_gb) + 'GB' },
+                    { label: '중앙값', value: number(row.median_monthly_usage_gb) + 'GB' },
+                    { label: '기록 고객', value: number(row.recorded_customer_count, 0) + '명' }
+                ] }));
+            });
+            legend(block, ['평균', '중앙값'], monthlyColors);
+        }
+        function drawDistribution(block, rows) {
+            const order = ['0_to_1_gb', '1_to_5_gb', '5_to_10_gb', '10_to_30_gb', '30_to_100_gb', '100_gb_or_more'];
+            const distribution = rows.filter(row => row.result_type === 'distribution')
+                .sort((a, b) => order.indexOf(a.group_label) - order.indexOf(b.group_label));
+            const concentration = new Map(rows.filter(row => row.result_type === 'concentration').map(row => [row.group_label, row]));
+            if (!distribution.length) return empty(block, '기간별 고객 사용량 분포·집중도');
+            const left = 66, right = 20, top = 44, bottom = 58, plotHeight = 210;
+            const width = plotWidth(block, 640);
+            const summaryWidth = Math.max(180, Math.min(300, width * .25));
+            const gap = 42, distributionRight = width - right - summaryWidth - gap;
+            const distributionWidth = distributionRight - left;
+            const maxValue = Math.max(1, ...distribution.map(row => row.customer_count));
+            const max = Math.ceil(maxValue / 5) * 5;
+            const columnWidth = distributionWidth / distribution.length;
+            const y = value => top + plotHeight * (1 - value / max);
+            const svg = chart(block, '사용량 구간별 고객 분포와 상위 고객 점유율', top + plotHeight + bottom, width);
+
+            const top1 = concentration.get('top_1_pct');
+            const top10 = concentration.get('top_10_pct');
+            text(svg, left, 18, '사용량 구간별 고객 수', 'start', 'var(--ink2)', true);
+
+            for (let tick = 0; tick <= 4; tick++) {
+                const value = max * tick / 4;
+                svgNode('line', { x1: left, x2: distributionRight, y1: y(value), y2: y(value), stroke: value ? 'var(--grid)' : 'var(--axis)' }, svg);
+                text(svg, left - 8, y(value) + 4, number(value, 0), 'end');
+            }
+            text(svg, left - 8, top - 10, '고객 수(명)', 'end');
+
+            distribution.forEach((row, index) => {
+                const x0 = left + index * columnWidth;
+                const center = x0 + columnWidth / 2;
+                const barWidth = columnWidth * .62;
+                const bar = svgNode('rect', {
+                    x: center - barWidth / 2, y: y(row.customer_count), width: barWidth,
+                    height: y(0) - y(row.customer_count), rx: 3, fill: 'var(--s1)'
+                }, svg);
+                text(svg, center, y(row.customer_count) - 7, number(row.customer_count, 0), 'middle', 'var(--ink2)', true);
+                text(svg, center, top + plotHeight + 21, (GROUP_LABELS[row.group_label] || row.group_label).replace(' 미만', ''), 'middle', 'var(--ink2)');
+                attachTip(bar, () => ({ title: GROUP_LABELS[row.group_label] || row.group_label, rows: [
+                    { label: '고객 수', value: number(row.customer_count, 0) + '명' },
+                    { label: '고객 비중', value: row.customer_share_pct === null ? '—' : number(row.customer_share_pct) + '%' },
+                    { label: '사용량', value: number(row.total_usage_gb) + 'GB' }
+                ] }));
+            });
+            text(svg, left + distributionWidth / 2, top + plotHeight + 48, '기간별 사용량 구간', 'middle', 'var(--ink2)');
+
+            const summaryX = distributionRight + gap;
+            svgNode('line', { x1: distributionRight + gap / 2, x2: distributionRight + gap / 2, y1: top - 22, y2: top + plotHeight, stroke: 'var(--grid)' }, svg);
+            text(svg, summaryX, 18, '상위 고객 사용량 점유율', 'start', 'var(--ink2)', true);
+            const concentrationKpi = (row, label, color, centerY) => {
+                const share = row?.usage_share_pct;
+                text(svg, summaryX + summaryWidth / 2, centerY - 18, label, 'middle', 'var(--ink2)', true);
+                const value = text(svg, summaryX + summaryWidth / 2, centerY + 22,
+                    share === null || share === undefined ? '—' : number(share, 1) + '%', 'middle', color, true);
+                value.style.fontSize = '30px';
+            };
+            concentrationKpi(top1, '상위 1%', 'var(--s2)', top + 58);
+            svgNode('line', { x1: summaryX, x2: summaryX + summaryWidth, y1: top + 112, y2: top + 112, stroke: 'var(--grid)' }, svg);
+            concentrationKpi(top10, '상위 10%', 'var(--s3)', top + 164);
+        }
+        function drawFamilyComposition(block, rows) {
+            const total = rows.reduce((sum, row) => sum + row.family_count, 0);
+            if (!total) return empty(block, '결합·인터넷 보유 가족');
+            block.replaceChildren(el('div', '결합 여부 × 인터넷 보유 여부', 'chart-title'));
+            const matrix = el('div', undefined, 'family-matrix');
+            matrix.setAttribute('role', 'grid');
+            matrix.setAttribute('aria-label', '가족 결합 및 인터넷 보유 조합 2×2 매트릭스');
+            matrix.append(el('div', '', 'family-axis'), el('div', '인터넷 보유', 'family-axis'), el('div', '인터넷 없음', 'family-axis'));
+            const byCombination = new Map(rows.map(row => [String(row.has_bundle) + '|' + String(row.has_kt_internet), row]));
+            [true, false].forEach(hasBundle => {
+                matrix.append(el('div', hasBundle ? '결합 가입' : '미결합', 'family-axis'));
+                [true, false].forEach(hasInternet => {
+                    const row = byCombination.get(String(hasBundle) + '|' + String(hasInternet)) || {
+                        has_bundle: hasBundle, has_kt_internet: hasInternet, family_count: 0, family_share_pct: 0
+                    };
+                    const name = (hasBundle ? '결합 가입' : '미결합') + ' · ' + (hasInternet ? '인터넷 보유' : '인터넷 없음');
+                    const cell = el('div', undefined, 'family-cell');
+                    const color = hasBundle ? (hasInternet ? 'var(--s1)' : 'var(--s2)') : (hasInternet ? 'var(--o2)' : 'var(--s0)');
+                    cell.style.background = color;
+                    cell.style.color = hasBundle ? '#fff' : 'var(--ink)';
+                    if (!row.family_count) cell.style.opacity = '.45';
+                    const share = el('strong', row.family_share_pct === null ? '—' : number(row.family_share_pct, 1) + '%', 'share');
+                    const count = el('span', number(row.family_count, 0) + '곳', 'count');
+                    cell.append(share, count);
+                    attachTip(cell, () => ({ title: name, rows: [
+                    { label: '가족 수', value: number(row.family_count, 0) + '곳' },
+                    { label: '가족 비중', value: row.family_share_pct === null ? '—' : number(row.family_share_pct, 1) + '%' }
+                ] }));
+                    matrix.append(cell);
+                });
+            });
+            block.append(matrix);
+        }
+        function formatCell(value, column) {
+            if (value === null || value === undefined) return '—';
+            if (column.name === 'group_label') return GROUP_LABELS[value] || value;
+            if (column.name === 'result_type') return value === 'distribution' ? '분포' : value === 'concentration' ? '집중도' : value;
+            if (column.type === 'boolean') return value ? '예' : '아니오';
+            if (column.type === 'numeric' || column.type === 'bigint') return number(value, column.type === 'bigint' ? 0 : 2);
+            if (column.name === 'calendar_month') return value.slice(0, 7);
+            return String(value);
+        }
+        function renderTable(state, rows) {
+            const table = state.table;
+            table.replaceChildren();
+            const caption = el('caption', contracts[state.section.query_id].query_name + ' · 조회 결과');
+            const head = el('thead'), header = el('tr'), body = el('tbody');
+            const columns = contracts[state.section.query_id].output.filter(column => state.section.visible_table_columns.includes(column.name));
+            columns.forEach(column => {
+                const cell = el('th', (LABELS[column.name] || column.name) + (column.unit ? ' (' + column.unit + ')' : ''));
+                cell.scope = 'col';
+                cell.dataset.column = column.name;
+                cell.title = column.name + ' · ' + column.description;
+                header.append(cell);
+            });
+            head.append(header);
+            rows.forEach(row => {
+                const tr = el('tr');
+                columns.forEach(column => {
+                    const cell = el('td', formatCell(row[column.name], column));
+                    cell.dataset.column = column.name;
+                    tr.append(cell);
+                });
+                body.append(tr);
+            });
+            if (!rows.length) {
+                const row = el('tr'), cell = el('td', state.loaded ? '표시할 결과 행이 없습니다.' : '기간 데이터를 불러오는 중입니다.');
+                cell.colSpan = state.section.visible_table_columns.length;
+                row.append(cell); body.append(row);
+            }
+            table.append(caption, head, body);
+        }
+        function makeSelect(state, key, label) {
+            const wrapper = el('label', label), select = el('select');
+            select.id = state.section.key + '-local-' + key;
+            select.disabled = true;
+            wrapper.append(select);
+            state.localFilters.append(wrapper);
+            state.selects[key] = select;
+            select.addEventListener('change', () => render(state));
+            return select;
+        }
+        function options(select, items, includeAll, label = '전체') {
+            const previousValue = select.value;
+            select.replaceChildren();
+            if (includeAll) {
+                const option = el('option', label); option.value = ''; select.append(option);
+            }
+            items.forEach(item => {
+                const option = el('option', item.label); option.value = item.value; select.append(option);
+            });
+            if ([...select.options].some(item => item.value === previousValue)) select.value = previousValue;
+            else if (!includeAll && items.length) select.value = items[items.length - 1].value;
+            select.disabled = !items.length;
+        }
+        function refreshLocalOptions(state) {
+            if (state.section.key === 'content') {
+                const plans = new Map(state.rows.map(row => [row.plan_id, row.plan_name]));
+                options(state.selects.plan, [...plans].sort(([idA, nameA], [idB, nameB]) => comparePlanNames(nameA, nameB, idA, idB)).map(([value, label]) => ({ value, label })), true);
+                const ages = [...new Set(state.rows.map(row => row.age_band))].sort((a, b) => AGE_ORDER.indexOf(a) - AGE_ORDER.indexOf(b));
+                options(state.selects.age, ages.map(value => ({ value, label: value })), true);
+            }
+        }
+        function render(state) {
+            if (!globalForm.checkValidity()) return;
+            hideTip();
+            const key = state.section.key;
+            const selection = currentSelection();
+            let rows = filterRowsForDisplay(key, state.rows, selection);
+            if (key === 'content') rows = rows.filter(row => (!state.selects.plan.value || row.plan_id === state.selects.plan.value)
+                && (!state.selects.age.value || row.age_band === state.selects.age.value));
+            if (key === 'plans') rows = aggregatePlans(rows);
+            if (key === 'distribution') rows = aggregateDistribution(rows);
+            state.context.textContent = key === 'subscribers'
+                ? '전체 기간 기준 · 기간 설정 미적용 · 가입자 기준일 ' + FIXED_AS_OF_DATE
+                : ['families', 'plans'].includes(key) ? '' : '조회 기간: ' + periodLabel(selection);
+            if (state.loaded) {
+                state.status.className = 'status';
+                state.status.textContent = '';
+            }
+            renderTable(state, rows);
+            const blocks = state.blocks;
+            if (!state.loaded) { blocks.forEach(block => empty(block, '', state.error || '기간 데이터를 불러오는 중입니다.')); return; }
+            if (key === 'subscribers') drawHeatmap(blocks[0], rows);
+            else if (key === 'monthly') drawMonthlyTrend(blocks[0], rows);
+            else if (key === 'plans') drawPlanComparison(blocks[0], rows);
+            else if (key === 'content') {
+                const filters = {
+                    start: monthStart(selection.startMonth), endExclusive: nextMonth(selection.endMonth),
+                    plan: state.selects.plan.value, age: state.selects.age.value
+                };
+                drawCategoryStacked(blocks[0], '요금제별 콘텐츠 · 구성 비중 %', aggregateContent(state.rows, filters, 'plan_id'), true);
+                drawCategoryStacked(blocks[1], '연령대별 콘텐츠 · 구성 비중 %', aggregateContent(state.rows, filters, 'age_band'), true);
+            } else if (key === 'distribution') drawDistribution(blocks[0], rows);
+            else if (key === 'families') drawFamilyComposition(blocks[0], rows);
+        }
+        async function load(state, values, force = false) {
+            let spec;
+            try {
+                spec = createRequestSpec(state.section.key, values, doc.getElementById('webhook-url').value.trim());
+            } catch (error) {
+                state.status.textContent = error.message; state.status.className = 'status error'; return false;
+            }
+            if (state.controller) state.controller.abort();
+            const controller = new AbortController();
+            state.controller = controller;
+            state.error = null;
+            const cacheKey = JSON.stringify([spec.url, spec.body]);
+            if (!force && state.cache.has(cacheKey)) {
+                state.rows = state.cache.get(cacheKey); state.loaded = true;
+                state.card.setAttribute('aria-busy', 'false');
+                refreshLocalOptions(state); render(state);
+                return true;
+            }
+            state.card.setAttribute('aria-busy', 'true');
+            state.rows = []; state.loaded = false; render(state);
+            state.status.className = 'status'; state.status.textContent = '조회 중입니다.';
+            const timer = setTimeout(() => controller.abort(), 60000);
+            try {
+                const rows = await sendRequest(spec, { signal: controller.signal });
+                if (state.controller !== controller) return false;
+                state.cache.set(cacheKey, rows);
+                state.rows = rows; state.loaded = true;
+                refreshLocalOptions(state); render(state);
+                return true;
+            } catch (error) {
+                if (state.controller !== controller) return false;
+                state.error = '데이터를 불러오지 못했습니다. 상단 새로고침을 누르세요.';
+                render(state);
+                state.status.className = 'status error';
+                state.status.textContent = error.name === 'AbortError' ? '조회 시간이 초과되었습니다. 다시 조회하세요.' : error.message;
+                return false;
+            } finally {
+                clearTimeout(timer);
+                if (state.controller === controller) {
+                    state.card.setAttribute('aria-busy', 'false');
+                }
+            }
+        }
+        function renderAll() { states.forEach(state => render(state)); }
+        async function loadAll(force = false) {
+            if (!globalForm.reportValidity()) return;
+            const pending = pendingSelection();
+            const values = { 'start-month': pending.startMonth, 'end-month': pending.endMonth };
+            try { createRequestSpec('monthly', values, doc.getElementById('webhook-url').value.trim()); }
+            catch (error) { globalStatus.className = 'status error'; globalStatus.textContent = error.message; return; }
+            appliedSelection = pending;
+            const batch = ++batchId;
+            refreshButton.disabled = true;
+            const label = values['start-month'] + ' ~ ' + values['end-month'];
+            globalStatus.className = 'status'; globalStatus.textContent = label + ' 데이터를 불러옵니다.';
+            const results = await Promise.all([...states.values()].map(state =>
+                load(state, values, force && !state.section.fixedPeriod)
+            ));
+            if (batch !== batchId) return;
+            refreshButton.disabled = false;
+            globalStatus.className = results.every(Boolean) ? 'status' : 'status error';
+            globalStatus.textContent = results.every(Boolean)
+                ? label + ' 조회 완료'
+                : '일부 분석 조회에 실패했습니다. 각 분석의 메시지를 확인하세요.';
+        }
+
+        const displayOrder = ['subscribers', 'families', 'plans', 'content', 'distribution', 'monthly'];
+        displayOrder.map(getSection).forEach(section => {
+            const contract = contracts[section.query_id];
+            const card = el('section', undefined, 'card' + (section.wide ? ' wide' : ''));
+            card.id = section.key + '-section'; card.dataset.queryId = section.query_id;
+            card.setAttribute('aria-labelledby', section.key + '-heading'); card.setAttribute('aria-busy', 'false');
+            const heading = el('div', undefined, 'hd'), titleBlock = el('div');
+            const title = el('h2', contract.query_name); title.id = section.key + '-heading';
+            titleBlock.append(title, el('p', section.description, 'description'));
+            const tools = el('div', undefined, 'tools'), toggle = el('button', '표로 보기');
+            toggle.type = 'button'; toggle.setAttribute('aria-pressed', 'false');
+            toggle.setAttribute('aria-controls', section.table_id + '-wrap');
+            tools.append(toggle); heading.append(titleBlock, tools);
+            const status = el('p', '조회 전', 'status'); status.setAttribute('role', 'status');
+            const context = el('p', '', 'context'), localFilters = el('div', undefined, 'local-filters');
+            const visuals = el('div', undefined, 'visuals' + (section.key === 'content' ? ' dual' : ''));
+            const blocks = Array.from({ length: section.key === 'content' ? 2 : 1 }, () => el('div', undefined, 'chart-block'));
+            blocks.forEach(block => visuals.append(block));
+            const tableWrap = el('div', undefined, 'table-wrap'); tableWrap.id = section.table_id + '-wrap'; tableWrap.hidden = true;
+            tableWrap.tabIndex = 0;
+            tableWrap.setAttribute('role', 'region');
+            tableWrap.setAttribute('aria-label', contract.query_name + ' 결과 표');
+            const table = el('table'); table.id = section.table_id; table.dataset.queryId = section.query_id; tableWrap.append(table);
+            const state = { section, card, status, context, localFilters, visuals, blocks, table, rows: [], loaded: false, error: null, selects: {}, cache: new Map() };
+            states.set(section.key, state);
+            if (section.key === 'content') {
+                makeSelect(state, 'plan', '요금제'); makeSelect(state, 'age', '연령대');
+            }
+            toggle.addEventListener('click', () => {
+                hideTip();
+                const showTable = tableWrap.hidden;
+                tableWrap.hidden = !showTable; visuals.hidden = showTable;
+                toggle.textContent = showTable ? '그래프로 보기' : '표로 보기';
+                toggle.setAttribute('aria-pressed', String(showTable));
+            });
+            card.append(heading, context, status, localFilters, visuals, tableWrap);
+            doc.getElementById('analysis-sections').append(card);
+            render(state);
+            if (typeof ResizeObserver !== 'undefined') {
+                let lastWidth = card.clientWidth;
+                const observer = new ResizeObserver(() => {
+                    if (card.clientWidth === lastWidth) return;
+                    lastWidth = card.clientWidth;
+                    render(state);
+                });
+                observer.observe(card);
+            }
         });
-    });
-    M.forEach(function(row,index){
-        const hit=S('rect',{x:L+pw*index/count,y:T0,width:pw/count,height:ph+55,fill:'transparent',role:'button','aria-label':row.m.label+' 선택'},svg);hit.style.cursor='pointer';
-        attachTip(hit,function(){return {title:row.m.label,rows:[{label:'평균',value:valueText(row.avg,2)+' GB'},{label:'중앙값',value:valueText(row.median,2)+' GB'},{label:'이용자',value:fmt(row.users)+'명'},{label:'총사용량',value:fmt(row.total,2)+' GB'}]};},true);
-        hit.addEventListener('click',function(){setMonth(index);});
-        hit.addEventListener('keydown',function(event){if(event.key==='Enter' || event.key===' '){event.preventDefault();setMonth(index);}});
-    });
-}
-function tableE(){
-    return {cols:['월','이용자(명)','총사용량(GB)','평균(GB)','중앙값(GB)','기간'],rows:M.map(function(row){return [row.m.k,fmt(row.users),fmt(row.total,2),valueText(row.avg,2),valueText(row.median,2),row.m.partial?'부분 월':'조회 범위 내 월'];})};
-}
-
-/* ---------- F: 요금제별 평균 사용량 vs 기본 제공량 ---------- */
-function drawF(host,W){
-  var L=58,Rm=8,T0=14,ph=230,cols=PLANS.length,cw=(W-L-Rm)/cols;
-  var mo=M[cur];
-  var vals=mo.plan.map(function(p){return p.avg || 0;}).concat(PLANS.map(function(p){return p.lim || 0;}));
-  var ymax=Math.max(120,Math.ceil(Math.max.apply(null,vals)/30)*30);
-  var H=T0+ph+4+34+24;
-  function Y(v){return T0+ph*(1-v/ymax);}
-  var svg=S('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'요금제별 이용자당 평균 사용량과 기본 제공량. 자세한 값은 표로 보기에서 확인합니다.'},host);
-  for(var v=0;v<=ymax;v+=30){S('line',{x1:L,x2:W-Rm,y1:Y(v),y2:Y(v),'class':v===0?'axl':'grd'},svg);T(svg,L-8,Y(v)+4,String(v),'','end');}
-  T(svg,L-8,T0-2,'GB','','end').style.fontSize='10px';
-  var over=0;
-  PLANS.forEach(function(p,i){
-    var avg=mo.plan[i].avg,n=PSUB[i],x=L+i*cw;
-    var g=S('g',{'data-plan':i},svg);
-    if(n<10)g.style.opacity='.45';
-    var isOver=avg!=null&&p.lim!=null&&avg>p.lim;if(isOver)over++;
-    if(p.lim!=null){
-      var tr=S('rect',{x:x+3,y:Y(p.lim),width:cw-6,height:Y(0)-Y(p.lim),rx:2},g);tr.style.fill='var(--track)';
+        globalForm.addEventListener('submit', event => { event.preventDefault(); loadAll(true); });
+        startMonthInput.addEventListener('change', markPeriodPending);
+        endMonthInput.addEventListener('change', markPeriodPending);
+        loadAll(false);
+        return { states };
     }
-    var bwid=(cw-6)*.52;
-    if(avg!=null){var bar=S('rect',{x:x+(cw-bwid)/2,y:Y(avg),width:bwid,height:Math.max(0,Y(0)-Y(avg)),rx:2},g);
-    bar.style.fill=isOver?'var(--serious)':'var(--s1)';}
-    if(isOver){var tri=T(g,x+cw/2,Y(avg)-4,'▲','','middle');tri.style.fill='var(--serious)';tri.style.fontSize='9px';}
-    var hit=S('rect',{x:x,y:T0,width:cw,height:ph,fill:'transparent'},g);
-    attachTip(hit,function(){
-      var rows=[
-        {label:'이용자당 평균 사용량',value:avg===null?'해당 없음':avg.toFixed(1)+' GB',color:isOver?'var(--serious)':'var(--s1)'},
-        {label:'기본 제공량',value:p.lim==null?'무제한':p.lim+' GB'},
-        {label:'가입자',value:fmt(n)+'명'+(n<10?' (표본 작음)':'')},
-        {label:'월정액',value:fmt(p.fee)+'원'}];
-      if(isOver)rows.push({label:'제공량 초과',value:'+'+(avg-p.lim).toFixed(1)+' GB'});
-      return {title:p.name,rows:rows};
-    },true);
-    hit.addEventListener('pointerenter',function(){setHL(null,i);});
-    hit.addEventListener('pointerleave',clearHL);
-  });
-  planAxis(svg,L,cw,T0+ph+4,'만원',true);
-  var unl=PLANS.filter(function(p){return p.lim==null;}).length;
-  $('#note-f').textContent='선택월 기준 제공량 초과 요금제 '+over+'개, 무제한 요금제 '+unl+'개는 제공량 막대가 없습니다. 현재 요금제로 과거 사용량을 분류하므로 요금제 변경 효과는 볼 수 없습니다.';
-}
-function tableF(){
-  var mo=M[cur];
-  return {cols:['요금제','월정액(만원)','가입자(명)','평균 사용(GB)','기본 제공량(GB)','상태'],
-    rows:PLANS.map(function(p,i){
-      var avg=mo.plan[i].avg;
-      return [p.name,String(+(p.fee/10000).toFixed(1)),fmt(PSUB[i]),valueText(avg,1),p.lim==null?'무제한':String(p.lim),avg!=null&&p.lim!=null&&avg>p.lim?'제공량 초과':'-'];
-    })};
-}
 
-/* ---------- 필터, KPI, 조회 상태 ---------- */
-function buildSeg(){
-    const seg=$('#seg');seg.replaceChildren();
-    const years=new Set(MONTHS.map(function(month){return month.k.slice(0,4);}));
-    MONTHS.forEach(function(month,index){
-        const button=document.createElement('button');button.type='button';button.id='m'+index;
-        const label=(years.size>1?month.k.slice(0,4)+'년 ':'')+Number(month.k.slice(5,7))+'월';
-        button.appendChild(document.createTextNode(label));button.title=month.k;button.setAttribute('aria-label',month.label+(month.partial?' 부분 월':''));
-        if(month.partial){const badge=document.createElement('small');badge.textContent='부분';button.appendChild(badge);}
-        button.addEventListener('click',function(){setMonth(index);});seg.appendChild(button);
-    });
-}
-function updateChrome(){
-    MONTHS.forEach(function(month,index){$('#m'+index).setAttribute('aria-pressed',String(index===cur));});
-    const month=MONTHS[cur],mo=M[cur],range=rowsFor('OPS_015')[0];
-    $('#mchip').textContent=month ? (month.partial?'부분 월 · 월 합계 비교에 주의하세요':'조회 범위에 포함된 월 · 적재 누락은 별도 확인') : session ? '선택 월: '+session.selected_year_month+' · 조회 가능한 다른 월을 선택할 수 있습니다.' : '기준월: 조회 전';
-    $('#mchip').className='chip'+(month && month.partial?' warn':'');
-    $('#range-chip').textContent=range && range.min_date && range.max_date ? '사용량 기간 '+range.min_date+' ~ '+range.max_date : '사용량 기간: '+(loaded('OPS_015')?'데이터 없음':'조회 전');
-    $('#snapshot-chip').textContent='가입 비중 기준일: '+OPS_017_AS_OF_DATE+' · 가입자 수 기준일: '+(session ? session.as_of_date : '조회 전');
-    $('#k1').textContent=loaded('OPS_002') && rowsFor('OPS_002').length ? fmt(rowsFor('OPS_002').reduce(function(sum,row){return sum+row.subscriber_count;},0)) : '-';
-    $('#k1s').textContent=loaded('OPS_002') && !rowsFor('OPS_002').length ? '해당 기준일의 가입 스냅샷이 없습니다.' : '현재 가입 스냅샷 기준';
-    $('#k2').textContent=mo && mo.avg!==null ? valueText(mo.avg,1)+' / '+valueText(mo.median,1)+' GB' : '-';
-    $('#k2s').textContent=mo && mo.users!==null ? mo.m.k+' · 이용자 '+fmt(mo.users)+'명' : '월별 평균 / 중앙값';
-    const families=FAMGRP.reduce(function(sum,row){return sum+row.fam;},0),bundled=FAMGRP.filter(function(row){return row.has_bundle;}).reduce(function(sum,row){return sum+row.fam;},0);
-    $('#k3').textContent=loaded('OPS_023') && families ? (bundled/families*100).toFixed(1)+'%' : '-';
-    $('#k3s').textContent=loaded('OPS_023') ? '가족 '+fmt(families)+'곳 중 '+fmt(bundled)+'곳' : '현재 가족 스냅샷 기준';
-    const top=mo && loaded('OPS_020:'+mo.m.k+':10') && mo.conc.find(function(point){return point.p===10;});
-    $('#k4').textContent=top && top.share!==null ? (top.share*100).toFixed(1)+'%' : '-';
-    $('#k4s').textContent=top ? mo.m.k+' · 상위 '+fmt(top.k)+'명' : '선택 월 기준';
-    if(cardStates.f.status!=='ready')$('#note-f').textContent='현재 요금제로 과거 사용량을 분류합니다. 기본 제공량 초과가 추가 요금 발생을 뜻하지는 않습니다.';
-    if(session){
-        const values=Object.values(session.raw),pending=values.filter(function(value){return value.status==='loading';}).length,errors=values.filter(function(value){return value.status==='error';}).length;
-        $('#connection-status').textContent=pending ? '목록 조회 중 · 쿼리 결과 대기 '+pending+'개'+(errors?' · 실패 '+errors+'개':'') : session.initializing ? '조회 중 · 월 버튼을 갱신하고 있습니다.' : errors ? '일부 조회 실패 · 각 카드의 다시 조회 버튼을 사용하세요.' : '조회 완료 · 조건 변경 시 변경된 쿼리만 요청합니다. 새로고침은 현재 조건 전체를 재조회합니다.';
-    }
-}
-function renderAll(){
-    rebuildData();updateChrome();charts.forEach(function(chart){chart.render();});
-}
-function setMonth(index){
-    if(index<0 || index>=MONTHS.length || index===cur)return;
-    cur=index;
-    const context=session;
-    context.selected_year_month=MONTHS[index].k;
-    tipHide();clearHL();
-    loadBatch(context,dashboardQueries(context.as_of_date,context.selected_year_month),false).then(function(){
-        if(context===session && !context.controller.signal.aborted)configureMonths(context);
-    });
-}
-reg('a',{minW:700,draw:drawA,table:tableA});
-reg('d',{minW:0,draw:drawD});
-reg('b',{minW:360,draw:drawB,table:tableB});
-reg('c',{minW:300,draw:drawC,table:tableC});
-reg('e',{minW:340,draw:drawE,table:tableE});
-reg('f',{minW:660,draw:drawF,table:tableF});
-$('#snapshot-date').value=CONFIG.as_of_date;
-$('#connection-form').addEventListener('submit',connect);
-renderAll();
-if(CONFIG.webhook_url && CONFIG.as_of_date)connect();
-})();
-</script>
-</body></html>
+    return { DEFAULT_ENDPOINT, SHARED_CONTROLS, SECTION_SPECS, contracts, LABELS, createRequestSpec, sendRequest, aggregateContent, aggregatePlans, aggregateDistribution, filterRowsForDisplay, mount };
+});
+    </script>
+</body>
+</html>
