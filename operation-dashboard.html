@@ -56,11 +56,9 @@
         .group-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
         .group-options { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 4px 0; }
         .group-options label { display: inline-flex; align-items: center; gap: 5px; color: var(--ink); font-weight: 500; cursor: pointer; white-space: nowrap; }
-        .group-options label.all { color: var(--ink2); font-weight: 600; padding-right: 14px; border-right: 1px solid var(--line); }
         .group-options input[type="checkbox"] { display: inline-block; width: 14px; height: 14px; min-height: 0; margin: 0; padding: 0; accent-color: var(--accent); cursor: pointer; }
         .toggle-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
         .toggle-group > span { font-size: 12px; color: var(--ink2); font-weight: 500; margin-right: 2px; }
-        .legend .ramp-label { color: var(--muted); }
         button:disabled, select:disabled { cursor: default; opacity: .55; }
         :focus-visible { outline: 2px solid rgba(228,0,43,.45); outline-offset: 2px; }
         .status, .context, .note { font-size: 12px; color: var(--muted); margin: 5px 0; }
@@ -866,10 +864,6 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
         function empty(block, title, message = '표시할 사용량 기록이 없습니다.') {
             block.replaceChildren(el('div', title, 'chart-title'), el('div', message, 'empty'));
         }
-        function resizeSvg(svg, width, height) {
-            svg.setAttribute('height', height);
-            svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
-        }
         /* 범례는 그래프 제목 바로 아래, 그래프 위에 둔다. */
         function placeLegend(block, node) {
             const plot = block.querySelector('.plot');
@@ -887,8 +881,6 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
             });
             return placeLegend(block, node);
         }
-        /* 글자 폭 추정: 한글 ≈ 1em, 그 외 ≈ 0.6em */
-        const textWidth = (value, size = 11) => [...String(value)].reduce((sum, char) => sum + (/[ㄱ-힝]/.test(char) ? size : size * .6), 0);
         const tooltip = doc.getElementById('analysis-tip');
         function hideTip() { tooltip.hidden = true; }
         function attachTip(node, getContent) {
@@ -921,50 +913,38 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
             if (bold) node.style.fontWeight = '600';
             return node;
         }
-        /* 요금제 축 라벨. 열이 좁아 용량 라벨이 겹치면 기울여 쓰고, 사용한 높이를 돌려준다. */
         function planLabels(svg, plans, left, columnWidth, top, showUnlimited) {
             const groups = [];
-            const variants = plans.map(plan => {
+            plans.forEach((plan, index) => {
+                const x = left + (index + .5) * columnWidth;
+                const family = planFamilyName(plan.plan_name);
                 const capacity = String(plan.plan_name).match(/\d+(?:\.\d+)?\s*(?:GB|MB|TB)/i)?.[0];
                 const price = String(plan.plan_name).match(/\d+(?:\.\d+)?\s*만원/i)?.[0];
-                return showUnlimited && plan.is_unlimited ? '무제한'
+                const variant = showUnlimited && plan.is_unlimited ? '무제한'
                     : plan.data_limit_gb !== null && plan.data_limit_gb !== undefined ? number(plan.data_limit_gb) + 'GB'
                         : capacity || price || '';
-            });
-            plans.forEach((plan, index) => {
-                const family = planFamilyName(plan.plan_name);
+                if (variant) text(svg, x, top + 15, variant, 'middle', 'var(--ink2)');
                 const previous = groups[groups.length - 1];
                 if (previous && previous.name === family) previous.end = index;
                 else groups.push({ name: family, start: index, end: index });
             });
-            /* 그룹 이름이나 용량이 칸에 들어가지 않으면 칸마다 '그룹 + 용량' 한 줄을 기울여 쓴다. */
-            const fits = variants.every(value => textWidth(value) <= columnWidth - 4)
-                && groups.every(group => textWidth(group.name) <= (group.end - group.start + 1) * columnWidth - 4);
-            if (!fits) {
-                const names = plans.map((plan, index) => {
-                    const family = planFamilyName(plan.plan_name), variant = variants[index];
-                    return variant ? family + ' ' + variant : family;
-                });
-                const widest = Math.max(0, ...names.map(name => textWidth(name)));
-                plans.forEach((plan, index) => {
-                    const x = left + (index + .5) * columnWidth + 3;
-                    const label = text(svg, x, top + 12, names[index], 'end', 'var(--ink2)');
-                    label.setAttribute('transform', 'rotate(-40 ' + x + ' ' + (top + 12) + ')');
-                    svgNode('title', {}, label, plan.plan_name);
-                });
-                return Math.ceil(widest * .64) + 20;
-            }
-            plans.forEach((plan, index) => {
-                if (variants[index]) text(svg, left + (index + .5) * columnWidth, top + 15, variants[index], 'middle', 'var(--ink2)');
-            });
             groups.forEach(group => {
                 const startX = left + group.start * columnWidth + 4;
                 const endX = left + (group.end + 1) * columnWidth - 4;
+                const centerX = (startX + endX) / 2;
                 svgNode('line', { x1: startX, x2: endX, y1: top + 29, y2: top + 29, stroke: 'var(--axis)' }, svg);
-                const label = text(svg, (startX + endX) / 2, top + 47, group.name, 'middle', 'var(--ink2)', true);
+                /* 한글 ≈ 11px, 그 외 ≈ 7px로 폭을 추정해 칸을 넘으면 줄인다. */
+                const charWidth = char => /[가-힣]/.test(char) ? 11 : 7;
+                const room = endX - startX + 6;
+                let shown = group.name, used = [...shown].reduce((sum, char) => sum + charWidth(char), 0);
+                if (used > room) {
+                    shown = ''; used = 8;
+                    for (const char of group.name) { if (used + charWidth(char) > room) break; shown += char; used += charWidth(char); }
+                    shown += '…';
+                }
+                const label = text(svg, centerX, top + 47, shown, 'middle', 'var(--ink2)', true);
                 svgNode('title', {}, label, group.name);
             });
-            return 52;
         }
         /* rows = 요금제 그룹 필터 후 행, allRows = 전체 행.
            색 단계는 전체 행 기준으로 고정해 체크를 바꿔도 색이 흔들리지 않게 한다. */
@@ -972,19 +952,12 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
             const title = '연령대 × 요금제 가입 비중';
             const plans = [...new Map(rows.map(row => [row.plan_id, row])).values()].sort(comparePlans);
             if (!plans.length) return empty(block, title, allRows.length ? '선택한 요금제 그룹이 없습니다.' : undefined);
-            const left = 60, right = 8, top = 6, rowHeight = 36, gap = 2, minColumn = 30;
-            const width = plotWidth(block, left + plans.length * minColumn + right);
-            const columnWidth = (width - left - right) / plans.length;
+            /* 칸 폭은 최대 50px. 카드 폭에 맞춰 늘리지 않고, 요금제가 많으면 카드 안에 들어가도록 줄인다. */
+            const left = 60, right = 8, top = 6, rowHeight = 36, gap = 2;
+            const columnWidth = Math.max(24, Math.min(50, ((block.clientWidth || 600) - left - right) / plans.length));
+            const width = left + plans.length * columnWidth + right;
             const maxShare = Math.max(0, ...allRows.map(row => row.age_band_share_pct ?? 0));
             const svg = chart(block, title, top + AGE_ORDER.length * rowHeight + 62, width);
-            const ramp = el('div', undefined, 'legend');
-            const rampItem = el('span'), rampSwatches = el('span', undefined, 'ramp');
-            for (let step = 1; step <= 7; step++) {
-                const swatch = el('i'); swatch.style.background = 'var(--q' + step + ')'; rampSwatches.append(swatch);
-            }
-            rampItem.append(el('span', '연령대 내 가입 비중 0%', 'ramp-label'), rampSwatches, el('span', number(maxShare, 1) + '%', 'ramp-label'));
-            ramp.append(rampItem, el('span', '칸 숫자 = 가입자 수'));
-            placeLegend(block, ramp);
             const cells = new Map(rows.map(row => [row.age_band + '|' + row.plan_id, row]));
             AGE_ORDER.forEach((age, ageIndex) => {
                 const y = top + ageIndex * rowHeight;
@@ -995,9 +968,8 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
                     const bucket = row?.subscriber_count && maxShare > 0 ? Math.min(7, Math.max(1, Math.ceil(share / maxShare * 7))) : 0;
                     const x = left + planIndex * columnWidth;
                     const cell = svgNode('rect', { x: x + gap / 2, y: y + gap / 2, width: columnWidth - gap, height: rowHeight - gap, rx: 3, fill: bucket ? 'var(--q' + bucket + ')' : 'var(--empty)' }, svg);
-                    const countText = row?.subscriber_count ? number(row.subscriber_count, 0) : '';
-                    if (countText && textWidth(countText, 10) <= columnWidth - 4) {
-                        const label = text(svg, x + columnWidth / 2, y + 22, countText, 'middle', 'var(--qt' + bucket + ')');
+                    if (row?.subscriber_count) {
+                        const label = text(svg, x + columnWidth / 2, y + 22, number(row.subscriber_count, 0), 'middle', 'var(--qt' + bucket + ')');
                         label.style.fontSize = '10px'; label.setAttribute('pointer-events', 'none');
                     }
                     attachTip(cell, () => ({ title: age + '세 · ' + plan.plan_name, rows: [
@@ -1006,12 +978,11 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
                     ] }));
                 });
             });
-            const axisTop = top + AGE_ORDER.length * rowHeight + 4;
-            resizeSvg(svg, width, axisTop + planLabels(svg, plans, left, columnWidth, axisTop, false) + 6);
+            planLabels(svg, plans, left, columnWidth, top + AGE_ORDER.length * rowHeight + 4, false);
         }
         function drawPlanComparison(block, rows, display = {}) {
             if (!rows.length) return empty(block, '요금제별 평균 사용량과 기본 제공량');
-            const left = 58, right = 8, top = display.value ? 32 : 24, plotHeight = 230, minColumn = 40;
+            const left = 58, right = 8, top = display.value ? 30 : 14, plotHeight = 230, minColumn = 40;
             const nRow = display.n ? 18 : 0;
             const width = plotWidth(block, left + rows.length * minColumn + right);
             const columnWidth = (width - left - right) / rows.length;
@@ -1019,12 +990,12 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
             const max = Math.max(120, Math.ceil(Math.max(0, ...values) / 30) * 30);
             const step = Math.max(30, Math.ceil(max / 5 / 30) * 30);
             const y = value => top + plotHeight * (1 - value / max);
-            const svg = chart(block, '요금제별 평균 사용량과 기본 제공량', top + plotHeight + 68, width);
+            const svg = chart(block, '요금제별 평균 사용량과 기본 제공량', top + plotHeight + 68 + nRow, width);
             for (let value = 0; value <= max; value += step) {
                 svgNode('line', { x1: left, x2: width - right, y1: y(value), y2: y(value), stroke: value ? 'var(--grid)' : 'var(--axis)' }, svg);
                 text(svg, left - 8, y(value) + 4, value, 'end');
             }
-            text(svg, left - 8, top - 12, 'GB', 'end');
+            text(svg, left - 8, top - 2, 'GB', 'end');
             rows.forEach((row, index) => {
                 const average = row.average_usage_per_subscriber_gb;
                 const base = row.is_unlimited ? null : row.data_limit_gb;
@@ -1055,8 +1026,7 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
                 ] }));
             });
             if (display.n) text(svg, left - 8, top + plotHeight + 14, 'n', 'end');
-            const axisTop = top + plotHeight + 4 + nRow;
-            resizeSvg(svg, width, axisTop + planLabels(svg, rows, left, columnWidth, axisTop, true) + 6);
+            planLabels(svg, rows, left, columnWidth, top + plotHeight + 4 + nRow, true);
             const guide = el('div', undefined, 'legend');
             [['기본 제공량', 'var(--comparison-gray)'], ['가입자당 평균사용량', 'var(--comparison-blue)'], ['평균이 기본 제공량보다 높음 ▲', 'var(--serious)']].forEach(([name, color]) => {
                 const item = el('span'), swatch = el('i', undefined, 'swatch'); swatch.style.background = color; item.append(swatch, doc.createTextNode(name)); guide.append(item);
@@ -1215,13 +1185,6 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
                 value.style.fontSize = '30px';
                 const detail = row ? 'n=' + number(row.customer_count, 0) + '명 · 합계 ' + number(row.total_usage_gb, 0) + 'GB' : '집계 행 없음';
                 text(group, centerX, centerY + 42, detail, 'middle', 'var(--ink2)');
-                const hit = svgNode('rect', { x: summaryX, y: centerY - 34, width: summaryWidth, height: 82, fill: 'transparent' }, group);
-                attachTip(hit, () => ({ title: label + ' 고객', rows: [
-                    { label: '사용량 점유율', value: share === null || share === undefined ? '—' : number(share, 1) + '%' },
-                    { label: '고객 수', value: row ? number(row.customer_count, 0) + '명' : '—' },
-                    { label: '사용량 합계', value: row ? number(row.total_usage_gb) + 'GB' : '—' },
-                    { label: '여러 달 조회 시', value: '월별 값을 합산' }
-                ] }));
             };
             concentrationKpi(top1, '상위 1%', 'var(--s2)', top + 50);
             svgNode('line', { x1: summaryX, x2: summaryX + summaryWidth, y1: top + 106, y2: top + 106, stroke: 'var(--grid)' }, svg);
@@ -1342,10 +1305,8 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
             updateGroupToggle(state);
         }
         function updateGroupToggle(state) {
-            const filter = state.groupFilter, total = filter.groups.length;
-            const shown = filter.groups.filter(name => !filter.hidden.has(name)).length;
-            filter.toggle.textContent = '요금제 그룹 ' + (!total ? '' : shown === total ? '· 전체' : '· ' + shown + '/' + total);
-            filter.toggle.disabled = !total;
+            state.groupFilter.toggle.textContent = '요금제 그룹';
+            state.groupFilter.toggle.disabled = !state.groupFilter.groups.length;
         }
         const groupVisible = (state, planName) => !state.groupFilter || !state.groupFilter.hidden.has(planGroup(planName));
         function refreshGroupFilter(state) {
@@ -1354,32 +1315,17 @@ globalThis.OPERATIONS_ANALYSIS_CONTRACTS = {
             const present = new Set(state.rows.map(row => planGroup(row.plan_name)));
             filter.groups = PLAN_GROUPS.filter(name => present.has(name));
             filter.panel.replaceChildren();
-            const allLabel = el('label', undefined, 'all'), all = el('input');
-            all.type = 'checkbox';
-            allLabel.append(all, doc.createTextNode('전체'));
-            filter.panel.append(allLabel);
-            const boxes = filter.groups.map(name => {
+            filter.groups.forEach(name => {
                 const label = el('label'), box = el('input');
                 box.type = 'checkbox'; box.checked = !filter.hidden.has(name);
                 box.addEventListener('change', () => {
                     if (box.checked) filter.hidden.delete(name); else filter.hidden.add(name);
-                    syncAll(); onGroupChange(state);
+                    onGroupChange(state);
                 });
                 label.append(box, doc.createTextNode(name));
                 filter.panel.append(label);
-                return box;
             });
-            function syncAll() {
-                const checked = boxes.filter(box => box.checked).length;
-                all.checked = checked === boxes.length;
-                all.indeterminate = checked > 0 && checked < boxes.length;
-            }
-            all.addEventListener('change', () => {
-                filter.groups.forEach(name => { if (all.checked) filter.hidden.delete(name); else filter.hidden.add(name); });
-                boxes.forEach(box => { box.checked = all.checked; });
-                syncAll(); onGroupChange(state);
-            });
-            syncAll(); updateGroupToggle(state);
+            updateGroupToggle(state);
         }
         function onGroupChange(state) {
             updateGroupToggle(state);
