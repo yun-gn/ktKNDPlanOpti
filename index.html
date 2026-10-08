@@ -395,11 +395,11 @@ button { cursor: pointer; }
     stream: false,
     opsUrl: '/operation-dashboard.html',
     idPattern: /^U\d{5}$/,
-    // 후보 고객 4명: 2026-10-02 ai_personalization 뷰 조회 값. 월평균은 2026-04~09 (완전한 6개월) 기준입니다
+    // 후보 고객 4명: 2026-10-02 ai_personalization 뷰 조회 값. 월평균은 2026-04~09 (6개월) 기준입니다
     users: [
       { id: 'U00603', name: '김수서', plan: '초이스90', fee: 90000, data: '무제한 · 5G',
         services: ['티빙 스탠다드'], meta: '결합 없음 · KT 인터넷 없음', avgGb: 176.8,
-        reason: '적정 유지 확인 · 월 176.8GB 헤비 유저, 티빙 실사용',
+        reason: '유지 적정성 확인 · 월 176.8GB 사용, 티빙 실사용',
         ask: '티빙을 실제로 얼마나 쓰고 있어? 지금 혜택 구성이 맞는지 봐줘' },
       { id: 'U09832', name: '윤서준', plan: '베이직21GB(이월)', fee: 58000, data: '월 21GB · LTE/5G',
         services: [], meta: '가족 정보 없음', avgGb: 71.1,
@@ -452,7 +452,9 @@ button { cursor: pointer; }
     var review = body.review;
     if (typeof review === 'string') { try { review = JSON.parse(review); } catch (e) { review = null; } }
     var ok = review && typeof review === 'object' && /^review-/.test(review.version || '') && review.data && Array.isArray(review.data.options);
-    return { text: text, payload: ok ? { review: review, analysisId: body.analysis_id || '' } : null };
+    // decision: n8n이 고른 추천 선택지 (Cost Ledger1). 화면 계산(calc)이 같은 선택지를 고르는지 selfCheck에서 확인합니다
+    var decision = body.decision && typeof body.decision === 'object' ? body.decision : null;
+    return { text: text, payload: ok ? { review: review, analysisId: body.analysis_id || '', decision: decision } : null };
   }
 
   function StreamState() { this.segs = []; this.steps = 0; this.error = ''; this.respond = ''; this.buf = ''; }
@@ -586,12 +588,15 @@ button { cursor: pointer; }
       // 가족 전체 = 본인 회선 요금 변화(결합 할인 전, 선택약정 반영) − 가족 결합 할인 합계 변화. 다른 가족 회선 요금제는 그대로
       r.family = (r.bill - r.sel) - (cur.bill - cur.sel) - (r.fam - cur.fam);
     });
-    var alts = rows.filter(function (r) { return r !== cur; });
-    function minBy(k) { var m = Math.min.apply(null, alts.map(function (r) { return r[k]; })); return alts.filter(function (r) { return r[k] === m; }); }
-    return { rows: rows, cur: cur, bestOwn: alts.length ? minBy('own') : [], bestFam: alts.length ? minBy('family') : [] };
+    // 최저는 현재 구성까지 포함해 고릅니다 (n8n Cost Ledger1과 같은 규칙). 동률이면 모두 표시합니다.
+    // 현재 요금제가 최대 사용량을 못 덮으면(CURRENT_PLAN_FAILS_DATA_FIT) 현재 구성은 후보에서 뺍니다
+    var curFails = (D.flags || []).indexOf('CURRENT_PLAN_FAILS_DATA_FIT') >= 0;
+    var pool = rows.filter(function (r) { return !(curFails && r === cur); });
+    function minBy(k) { var m = Math.min.apply(null, pool.map(function (r) { return r[k]; })); return pool.filter(function (r) { return r[k] === m; }); }
+    return { rows: rows, cur: cur, curFails: curFails, bestOwn: pool.length ? minBy('own') : [], bestFam: pool.length ? minBy('family') : [] };
   }
-  // 화면 계산이 보고서 값과 같은지 확인합니다 (기본 가정, 선택약정 적용 두 가지)
-  function selfCheck(D) {
+  // 화면 계산이 보고서 값, n8n의 추천 선택지와 같은지 확인합니다 (기본 가정, 선택약정 적용 두 가지)
+  function selfCheck(D, decision) {
     try {
       var a = calc(D, defaultW()), b = calc(D, { selective: true, tie: 'min', drop: {} }), bad = [];
       a.rows.forEach(function (r, i) {
@@ -601,6 +606,11 @@ button { cursor: pointer; }
         if (typeof o.family_monthly_change === 'number' && r.family !== o.family_monthly_change) bad.push(o.label + ' 가족 전체');
         if (typeof o.final_selective === 'number' && b.rows[i].final !== o.final_selective) bad.push(o.label + ' 선택약정');
       });
+      if (decision) {
+        var keys = a.bestFam.map(function (r) { return r.o.key; });
+        if (keys.indexOf(decision.key) < 0 || !a.bestFam.length || a.bestFam[0].family !== decision.family_change)
+          bad.push('추천 선택지 (n8n: ' + (decision.is_current ? '현재 구성 유지' : decision.plan_name || decision.key) + ')');
+      }
       return bad;
     } catch (e) { return ['계산 오류: ' + e.message]; }
   }
@@ -610,7 +620,8 @@ button { cursor: pointer; }
     lowest_bill_selective: '선택약정 시 최저' };
   var BUNDLE_TYPE = { PREMIUM_FAMILY: '프리미엄 가족결합', INTERNET_MOBILE: '인터넷·모바일 결합' };
   var BUNDLE_METHOD = { TOTAL: '총액', FIXED: '정액' };
-  var BUNDLE_ACTION = { JOIN: '가입 시', KEEP: '유지', CHANGE: '변경', SWITCH: '전환', NONE: '' };
+  // n8n Evaluate Options의 bundle_action 값과 같은 키를 씁니다
+  var BUNDLE_ACTION = { JOIN: '가입 시', KEEP: '유지', CHANGE_TYPE: '결합 종류 변경', PREMIUM_LOST: '프리미엄 해제', NONE: '' };
   function bundleText(o) {
     if (!o.bundle) return '결합 없음';
     var b = o.bundle;
@@ -623,7 +634,8 @@ button { cursor: pointer; }
     if (o.settlement) w.push(o.fee >= CONFIG.fiveGFreeFee ? '하향: 베이직코스면 정산' : '하향: 정산 대상 (5G)');
     if (o.bundle_loss > 0) w.push('결합 할인 월 −' + fmt(o.bundle_loss) + '원');
     if (o.bundle_unpriced) w.push('결합 할인 변동 (미계산)');
-    if (typeof o.headroom === 'number') w.push('여유 ' + o.headroom + 'GB');
+    // headroom = 제공량 ÷ 최대 사용량 (GB가 아니라 배수). n8n의 여유 기준(CFG.safeHeadroom 1.3배)보다 작을 때만 표시합니다
+    if (typeof o.headroom === 'number' && o.headroom < 1.3) w.push('여유 적음: 제공량이 최대 사용량의 ' + o.headroom + '배');
     return w;
   }
   function planName(label) { return String(label || '').replace(/\s*\[[^\]]*\]\s*$/, ''); }
@@ -651,7 +663,7 @@ button { cursor: pointer; }
   function errorText(e, ms) {
     if (e && e.name === 'AbortError') return '응답이 ' + Math.round(ms / 1000) + '초 안에 오지 않아 중단했습니다. n8n의 Executions 탭에서 실행이 끝났는지 확인하세요.';
     if (e && e.message === 'HTTP 524') return 'n8n Cloud가 약 100초 안에 답을 받지 못해 연결을 끊었습니다. 질문을 나눠서 다시 보내 보세요.';
-    if (e && /^HTTP/.test(e.message || '')) return 'n8n이 오류(' + esc(e.message) + ')를 돌려줬습니다. Executions 탭에서 어느 노드에서 멈췄는지 확인하세요.';
+    if (e && /^HTTP/.test(e.message || '')) return 'n8n에서 오류(' + esc(e.message) + ')가 났습니다. Executions 탭에서 어느 노드에서 멈췄는지 확인하세요.';
     if (e && e.n8n) return /429|quota/i.test(e.n8n) ? 'AI 모델(Gemini) 사용 한도를 넘었습니다. 잠시 후 다시 시도하거나 API 키 한도를 확인하세요.'
       : 'n8n 실행 중 오류가 났습니다: ' + esc(e.n8n.slice(0, 300));
     return '서버에 연결하지 못했습니다. 잠시 후 다시 시도하세요.';
@@ -721,7 +733,7 @@ button { cursor: pointer; }
       // 보고서 응답이면 가운데 패널에 열고, 채팅에는 요약만 남깁니다
       var isReport = parsed.payload || (!s.report && /^####\s+요금제 검토/m.test(sp.body));
       if (isReport) {
-        s.report = { out: sp.body, payload: parsed.payload, checks: parsed.payload ? selfCheck(parsed.payload.review.data) : [] };
+        s.report = { out: sp.body, payload: parsed.payload, checks: parsed.payload ? selfCheck(parsed.payload.review.data, parsed.payload.decision) : [] };
         s.W = defaultW(); s.tab = 'options'; s.open = {};
         bubble.classList.add('done');
         bubble.innerHTML = reportSummary(s.report);
@@ -747,9 +759,10 @@ button { cursor: pointer; }
     var line = '';
     if (rep.payload && !rep.checks.length) {
       var c = calc(rep.payload.review.data, defaultW()), f = c.bestFam[0];
-      if (f) line = '<p>가족 전체 기준 최저: <strong>' + esc(planName(f.o.label)) + '</strong> · 가족 ' + delta(f.family) + ' · 본인 ' + delta(f.own) + ' /월</p>';
+      if (f && f === c.cur) line = '<p>가족 전체 기준 최저: <strong>현재 구성 유지</strong> (' + esc(curName(c.cur)) + ') · 더 낮은 선택지가 없습니다</p>';
+      else if (f) line = '<p>가족 전체 기준 최저: <strong>' + esc(planName(f.o.label)) + '</strong> · 가족 ' + delta(f.family) + ' · 본인 ' + delta(f.own) + ' /월</p>';
     }
-    return '<div class="md"><p><strong>검토 보고서를 열었습니다.</strong> 선택지 비교, 사용량, 가족결합은 보고서 패널에서 보세요.</p>' + line +
+    return '<div class="md"><p><strong>검토 보고서가 나왔습니다.</strong> 선택지 비교, 사용량, 가족결합은 보고서 패널에서 보세요.</p>' + line +
       '<p><button class="btn sm" type="button" data-show-report>보고서 보기</button></p></div>';
   }
   feed.addEventListener('click', function (e) {
@@ -776,12 +789,6 @@ button { cursor: pointer; }
       var o = ln.trim().match(/^([^\t\[]+?)\s*\[([^\]]*)\]/);
       if (o && /요금제 변경/.test(ln)) options.push({ name: o[1].trim(), svcs: /혜택 없음/.test(o[2]) ? [] : o[2].split(/,\s*/), line: ln });
     });
-    if ((m = t.match(/최적화 결과:\s*([^:\n]+?):[^\n]*?difference\s*₩?([\d,]+)/i))) {
-      var name = m[1].trim(), diff = m[2];
-      var opt = options.filter(function (o) { return o.name === name; })[0];
-      var more = opt && opt.line.match(/\+[\d,]+원/);
-      if (more) q('참고 결과(' + opt.name + ', 월 ' + diff + '원 절감)와 선택지 표(' + more[0] + ')가 다른 이유를 설명해줘', '답변 내 계산');
-    }
     if (benefit) q(benefit + ' 실제 사용량이 월별로 얼마나 돼? 혜택을 유지할 만큼 쓰고 있어?', 'PERS_006');
     if ((m = t.match(/최대 사용량[^\n]*?\/\s*([\d.,]+)\s*GB/))) q('사용량이 가장 많았던 달(최대 ' + m[1] + 'GB)에는 어떤 콘텐츠를 많이 썼어?', 'PERS_001 → PERS_005');
     options.forEach(function (o) {
@@ -838,7 +845,7 @@ button { cursor: pointer; }
     var D = rep.payload.review.data, c = calc(D, s.W);
     var title = sectionTitle(secs, '요금제 검토') || '요금제 검토';
     var P = D.period || {}, months = P.months || [];
-    var meta = (months.length ? months[0].month + ' ~ ' + months[months.length - 1].month + ' · 완전한 ' + (P.complete_months || months.length) + '개월' : '') +
+    var meta = (months.length ? months[0].month + ' ~ ' + months[months.length - 1].month + ' (' + (P.complete_months || months.length) + '개월)' : '') +
       (rep.payload.analysisId ? ' · ' + rep.payload.analysisId : '') + (rep.payload.review.as_of ? ' · ' + rep.payload.review.as_of + ' 기준' : '');
     var nNotice = (secs['유의사항'] || '').split('\n').filter(function (l) { return /^-\s/.test(l); }).length;
     reportEl.innerHTML =
@@ -851,14 +858,24 @@ button { cursor: pointer; }
       '<div id="tabBody">' + tabBody(s, D, c, secs) + '</div>';
   }
 
+  function curName(r) { return planName(r.o.label).replace(/^현재 · /, ''); }
   function kpis(c) {
     var cur = c.cur, f = c.bestFam[0], o = c.bestOwn[0], h = '';
-    h += '<div class="kpi"><div class="label">현재 최종 청구 · 본인</div><div class="v">' + won(cur.final) + '</div><div class="s">' + esc(planName(cur.o.label)) + ' · ' + esc(benefits(cur.o.label) || '혜택 없음') + '</div></div>';
-    if (f) h += '<div class="kpi hl"><div class="label">가족 전체 기준 최저</div><div class="v">' + delta(f.family) + '<span class="s"> /월</span></div><div class="s">' +
-      esc(c.bestFam.map(function (r) { return planName(r.o.label); }).join(', ')) + ' · 본인 ' + delta(f.own) + '</div></div>';
-    if (o && o !== f) h += '<div class="kpi"><div class="label">본인 청구 기준 최저</div><div class="v">' + delta(o.own) + '<span class="s"> /월</span></div><div class="s">' +
-      esc(c.bestOwn.map(function (r) { return planName(r.o.label); }).join(', ')) + ' · 최종 ' + won(o.final) + '</div></div>';
-    else if (o) h += '<div class="kpi"><div class="label">그 선택지의 본인 최종 청구</div><div class="v">' + won(o.final) + '</div><div class="s">본인 청구 기준으로도 최저입니다</div></div>';
+    function names(list) { return esc(list.map(function (r) { return r === cur ? '현재 구성' : planName(r.o.label); }).join(', ')); }
+    // 최저에 현재 구성이 들어 있으면 "현재 유지"로 보여 주고, 같은 금액의 다른 선택지가 있으면 함께 적습니다
+    function bestCard(label, list, k, hl) {
+      var keep = list.indexOf(cur) >= 0, others = list.filter(function (r) { return r !== cur; });
+      var v = keep ? '현재 유지' : delta(list[0][k]) + '<span class="s"> /월</span>';
+      var sub = keep ? (others.length ? '같은 금액: ' + names(others) : '더 낮은 선택지가 없습니다')
+        : names(list) + (k === 'family' ? ' · 본인 ' + delta(list[0].own) : ' · 최종 ' + won(list[0].final)) +
+          (c.curFails ? '<br>현재 요금제는 최대 사용량보다 제공량이 적어 비교에서 뺐습니다' : '');
+      return '<div class="kpi' + (hl ? ' hl' : '') + '"><div class="label">' + label + '</div><div class="v">' + v + '</div><div class="s">' + sub + '</div></div>';
+    }
+    var same = c.bestOwn.length === c.bestFam.length && c.bestOwn.every(function (r) { return c.bestFam.indexOf(r) >= 0; });
+    h += '<div class="kpi"><div class="label">현재 최종 청구 · 본인</div><div class="v">' + won(cur.final) + '</div><div class="s">' + esc(curName(cur)) + ' · ' + esc(benefits(cur.o.label) || '혜택 없음') + '</div></div>';
+    if (f) h += bestCard('가족 전체 기준 최저', c.bestFam, 'family', true);
+    if (o && !same) h += bestCard('본인 청구 기준 최저', c.bestOwn, 'own', false);
+    else if (o && o !== cur) h += '<div class="kpi"><div class="label">최저 선택지의 본인 최종 청구</div><div class="v">' + won(o.final) + '</div><div class="s">본인 청구로 봐도 가장 낮습니다</div></div>';
     return h;
   }
 
@@ -887,8 +904,8 @@ button { cursor: pointer; }
       (order.length ? '<div class="wi"><span class="label">계속 쓸 유료 서비스 (별도 구독 정가)</span><div class="checks">' + order.map(function (n) {
         return '<label><input type="checkbox" data-keep="' + esc(n) + '"' + (W.drop[n] ? '' : ' checked') + '>' + esc(n) + ' <span class="note num">' + fmt(names[n]) + '</span></label>';
       }).join('') + '</div></div>' : '') +
-      '<div class="wi"><span class="label">고정 가정</span><div class="checks"><span class="lock">🔒 ' + CONFIG.fixed.device + ' 단말</span><span class="lock">🔒 인터넷 약정 ' + CONFIG.fixed.contractMonths + '개월</span></div></div>' +
-      '<div class="wi-foot"><span>' + (changed ? '<span class="changed">화면 계산 중</span> · 보고서 값에서 가정만 바꿔 다시 더했습니다. 요금제 후보와 결합 규칙은 그대로입니다'
+      '<div class="wi"><span class="label">고정 가정</span><div class="checks"><span class="lock">' + CONFIG.fixed.device + ' 단말</span><span class="lock">인터넷 약정 ' + CONFIG.fixed.contractMonths + '개월</span></div></div>' +
+      '<div class="wi-foot"><span>' + (changed ? '<span class="changed">가정 변경됨</span> · 보고서 값에서 가정만 바꿔 다시 계산했습니다. 요금제 후보와 결합 규칙은 그대로입니다'
         : '보고서 값 그대로입니다') + '</span>' + (changed ? '<button class="btn sm" type="button" data-wreset>보고서 값으로</button>' : '') + '</div>' +
       '</div>';
   }
@@ -900,10 +917,12 @@ button { cursor: pointer; }
     var cols = s.W.selective ? 8 : 7;
     var body = c.rows.map(function (r) {
       var o = r.o, cur = isCurrent(o), open = !!s.open[o.key];
-      var tags = (o.profiles || []).filter(function (p) { return p !== 'current'; }).map(function (p) { return '<span class="tag">' + esc(PROFILE[p] || p) + '</span>'; });
-      if (bestF.indexOf(o.key) >= 0) tags.unshift('<span class="tag best">가족 최저</span>');
-      if (bestO.indexOf(o.key) >= 0) tags.unshift('<span class="tag best">본인 최저</span>');
-      warnings(o).forEach(function (w) { tags.push('<span class="tag warn">⚠ ' + esc(w) + '</span>'); });
+      var inF = bestF.indexOf(o.key) >= 0, inO = bestO.indexOf(o.key) >= 0;
+      // '최저 청구'(n8n 프로필)는 가족 최저와 같은 기준이라, 가족 최저 태그가 붙는 행에서는 빼서 겹치지 않게 합니다
+      var tags = (o.profiles || []).filter(function (p) { return p !== 'current' && !(inF && p === 'lowest_bill_keep_access'); })
+        .map(function (p) { return '<span class="tag">' + esc(PROFILE[p] || p) + '</span>'; });
+      if (inF || inO) tags.unshift('<span class="tag best">' + (inF && inO ? '최저 (본인·가족)' : inF ? '가족 최저' : '본인 최저') + '</span>');
+      warnings(o).forEach(function (w) { tags.push('<span class="tag warn">' + esc(w) + '</span>'); });
       var name = '<div class="oname"><button type="button" data-row="' + esc(o.key) + '" aria-expanded="' + open + '"><span class="pl">' + (cur ? '현재 · ' : '') +
         esc(planName(o.label).replace(/^현재 · /, '')) + ' ' + (open ? '▴' : '▾') + '</span></button><span class="bn">' + esc(benefits(o.label) || '혜택 없음') + ' · ' + esc(bundleText(o)) + '</span>' +
         (tags.length ? '<div class="tags">' + tags.join('') + '</div>' : '') + '</div>';
@@ -931,7 +950,7 @@ button { cursor: pointer; }
       '<div><span class="label">별도 구독 (정가)</span><ul>' + (unc || '<li>없음</li>') + '</ul></div>' +
       '<div><span class="label">결합</span><ul>' + bl + '</ul></div>' +
       '<div><span class="label">계산</span><p class="num" style="margin:2px 0 0">' + calcLine + '</p>' +
-      (o.settlement ? '<p class="note" style="margin:4px 0 0">월정액이 ' + fmt(o.settlement.fee_drop) + '원 낮아집니다. 공통지원금 약정(730일) 중이면 차액정산 대상일 수 있습니다 (금액은 데이터 없음).</p>' : '') + '</div></div>';
+      (o.settlement ? '<p class="note" style="margin:4px 0 0">월정액이 ' + fmt(o.settlement.fee_drop) + '원 낮아집니다. 공통지원금 약정(730일) 중이면 차액정산 대상일 수 있습니다 지원금 데이터가 없어 금액은 계산하지 않았습니다.</p>' : '') + '</div></div>';
   }
   function isDropped(n) { var s = st(); return !!(s && s.W.drop[n]); }
 
@@ -946,7 +965,7 @@ button { cursor: pointer; }
   function usageView(D) {
     var P = D.period || {}, months = P.months || [], h = '<div class="ugrid">';
     h += '<div class="card"><h3>월별 총 데이터 사용량</h3><div class="sub">평균 ' + (P.typical_gb != null ? P.typical_gb + 'GB' : '−') + ' · 최대 ' + (P.peak_gb != null ? P.peak_gb + 'GB' : '−') +
-      (P.partial ? ' · ' + esc(P.partial.month) + '은 ' + P.partial.days + '일 ' + P.partial.gb + 'GB (월 환산 ' + P.partial.pace_gb + 'GB)로 분석 제외' : '') + '</div>' +
+      (P.partial ? ' · ' + esc(P.partial.month) + '은 진행 중이라 제외 (' + P.partial.days + '일 ' + P.partial.gb + 'GB, 월 환산 ' + P.partial.pace_gb + 'GB)' : '') + '</div>' +
       '<div class="chart">' + monthBars(months, P.typical_gb) + '</div></div>';
     var cats = D.categories || [];
     if (cats.length) {
@@ -960,13 +979,14 @@ button { cursor: pointer; }
     if (sv.length) {
       var inc = {};
       D.options.forEach(function (o) { if (!isCurrent(o)) (o.covered || []).forEach(function (n) { (inc[n] = inc[n] || []).push(planName(o.label)); }); });
-      var STATUS = { SELECTED_USED: ['선택 · 사용', ''], SELECTED_NOT_USED: ['선택 · 사용 없음', 'warn'], NOT_SELECTED_USED: ['미선택 · 사용', ''], NOT_SELECTED_NOT_USED: ['미선택 · 사용 없음', ''] };
-      h += '<div class="card wide"><h3>서비스별 사용</h3><div class="sub">유료 서비스를 실제로 쓰는지와, 어느 선택지에 포함되는지</div><div class="table-wrap"><table class="stable"><thead><tr>' +
+      // n8n Build Review Dataset의 status 값과 같은 키를 씁니다
+      var STATUS = { SELECTED_USED: ['선택 · 사용', ''], SELECTED_NOT_USED: ['선택 · 사용 없음', 'warn'], NOT_SELECTED_USED: ['미선택 · 사용', ''], NOT_SELECTED_LOW: ['미선택 · 사용 적음', ''] };
+      h += '<div class="card wide"><h3>서비스별 사용</h3><div class="sub">유료 서비스 실사용 여부와 포함된 선택지</div><div class="table-wrap"><table class="stable"><thead><tr>' +
         '<th>서비스</th><th class="l">현재</th><th>월평균</th><th>' + months.length + '개월 추이</th><th>정가</th><th class="l">포함된 선택지</th></tr></thead><tbody>' +
         sv.map(function (x) {
           var stt = STATUS[x.status] || [x.status, ''];
           return '<tr><td><strong>' + esc(x.name) + '</strong>' + (x.access === 'FREEMIUM' ? ' <span class="note">무료 이용 가능</span>' : '') + '</td>' +
-            '<td class="l"><span class="st ' + stt[1] + '">' + (stt[1] === 'warn' ? '⚠ ' : '') + esc(stt[0]) + '</span></td>' +
+            '<td class="l"><span class="st ' + stt[1] + '">' + esc(stt[0]) + '</span></td>' +
             '<td>' + x.avg_gb + 'GB</td><td>' + spark(x.monthly_gb || [], months, x.name) + '</td>' +
             '<td>' + (x.list_price_won ? won(x.list_price_won) : '−') + '</td><td class="l wrap">' + esc((inc[x.name] || []).join(', ') || '−') + '</td></tr>';
         }).join('') +
