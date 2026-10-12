@@ -10,7 +10,7 @@
 
    URL 옵션 (human.js 옵션 speed · type · cursor도 같이 씁니다)
      play=1      불러오면 바로 진행      play=wait   부모 창(flow.html)의 시작 신호를 기다림
-     bundle=1    Scene 7에 가족결합 탭 포함 (U00603은 결합 대상이 아니라 안내 문구만 나옵니다)
+     bundle=0    Scene 7에서 가족결합 탭을 건너뜀
      ops=1       마지막에 운영 버튼으로 대시보드 이동 (대시보드는 n8n에서 실시간 조회합니다)
      date=YYYY-MM-DD   고정 날짜 변경
    키: Esc 중단 · Alt+C cue를 클립보드로 복사 */
@@ -35,13 +35,13 @@
 
   /* ---------- 2) 고정 응답 ---------- */
   var FIX = '/video/fixtures/';
-  var Q_TVING = '티빙 안 보면 베이직80이 싸네. 실제로 티빙 얼마나 봐?';
+  var Q_OTT = '디즈니+는 진짜 안 봐? 넷플릭스는 얼마나 봐?';
   var Q_MESSAGE = '이 고객한테 보낼 안내 문자 써줘';
   // review: intent가 review인 요청. q: 질문 문장이 정확히 같을 때. wait: 응답까지 기다리는 시간(ms, speed 적용 전)
   var FIXTURES = [
-    { user: 'U00603', intent: 'review', req: 'U00603-review.request.json', res: 'U00603-review.response.json', wait: 2400 },
-    { user: 'U00603', q: Q_TVING, req: 'U00603-followup1.request.json', res: 'U00603-followup1.response.json', wait: 1500 },
-    { user: 'U00603', q: Q_MESSAGE, req: 'U00603-message.request.json', res: 'U00603-message.response.json', wait: 2100 }
+    { user: 'U00864', intent: 'review', req: 'U00864-review.request.json', res: 'U00864-review.response.json', wait: 2400 },
+    { user: 'U00864', q: Q_OTT, req: 'U00864-followup1.request.json', res: 'U00864-followup1.response.json', wait: 1500 },
+    { user: 'U00864', q: Q_MESSAGE, req: 'U00864-message.request.json', res: 'U00864-message.response.json', wait: 2100 }
   ];
   var stopped = false;
 
@@ -108,6 +108,17 @@
       var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n;
       while ((n = w.nextNode())) if (n.nodeValue.indexOf('후보 고객') >= 0) n.nodeValue = n.nodeValue.replace(/후보 고객/g, '요청 고객');
     });
+  });
+  var KO = [[/Disney\+/g, '디즈니+'], [/Netflix/g, '넷플릭스']];
+  document.addEventListener('DOMContentLoaded', function () {
+    var side = document.querySelector('.side');
+    if (!side) return;
+    function fix() {
+      var w = document.createTreeWalker(side, NodeFilter.SHOW_TEXT), n;
+      while ((n = w.nextNode())) KO.forEach(function (k) { if (k[0].test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(k[0], k[1]); k[0].lastIndex = 0; });
+    }
+    new MutationObserver(fix).observe(side, { childList: true, subtree: true, characterData: true });
+    fix();
   });
   function flag(cls, ms) {
     var rep = document.getElementById('report');
@@ -203,29 +214,31 @@
   /* 장면 순서. H.wait(ms)는 화면을 보여 주는 시간입니다. TTS 길이에 맞춰 이 숫자나 speed 옵션을 고치면 됩니다 */
   var STEPS = [
     ['3', async function () { await H.wait(900); await rest('#customers', 0.5, 0.1); await H.wait(500); }],
-    ['3', async function () { await tap(function () { var i = $('#customers input[value="U00603"]'); return i && i.closest('.pick'); }, '요청 고객 김수서 선택', 0.4, 0.5); await H.wait(1300); }],
+    ['3', async function () { await tap(function () { var i = $('#customers input[value="U00864"]'); return i && i.closest('.pick'); }, '요청 고객 이현서 선택', 0.4, 0.5); await H.wait(1300); }],
     ['3', async function () { await tap('#presets [data-months="6"]', '기간 6개월'); await H.wait(900); }],
     ['3', async function () { flag('rec-reveal', 5200); await tap('#report [data-start]', '요금제 적정성 검토 시작'); }],
     ['4', async function () {
       log('로딩 스켈레톤');
       await rest('#report', 0.5, 0.9);
       await waitFor('#kpis'); log('보고서 표시: KPI 카드');
-      await H.wait(800); await rest('#kpis .kpi.hl', 0.5, 1.15); await H.wait(2600);
+      await H.wait(800); await rest('#kpis .kpi.hl', 0.5, 1.15); await H.wait(3000);
     }],
-    ['4', async function () { await scrollReport('#report .whatif', '선택지 표로 스크롤'); await H.wait(2400); }],
-    ['4', async function () { await tap('#report .oname [data-row="OPT1"]', '베이직80 행 펼치기 (계산 근거)', 0.3, 0.5); await H.wait(3600); }],
-    ['4', async function () { await tap('#report .oname [data-row="OPT1"]', '베이직80 행 접기', 0.3, 0.5); await H.wait(900); }],
-    ['5', async function () { await toggle('#report [data-w="selective"][data-v="true"]', '선택약정 25% 적용'); await H.wait(3400); }],
+    ['4', async function () { await scrollReport('#report .whatif', '선택지 표로 스크롤'); await H.wait(2600); }],
+    ['4', async function () { await tap('#report .oname [data-row="OPT1"]', '초이스90 행 펼치기 (계산 근거)', 0.3, 0.5); await H.wait(3800); }],
+    ['4', async function () { await tap('#report .oname [data-row="OPT1"]', '초이스90 행 접기', 0.3, 0.5); await H.wait(900); }],
+    // 가정 바꿔 보기: 선택약정을 받으면 최저가 초이스110으로 바뀌고, 결합 할인을 본인 회선에 몰아받으면 본인 청구가 크게 달라집니다
+    ['5', async function () { await toggle('#report [data-w="selective"][data-v="true"]', '선택약정 25% 적용 → 최저가 초이스110으로'); await H.wait(600); await rest('#report .otable', 0.66, 0.92); await H.wait(3000); }],
     ['5', async function () { await toggle('#report [data-w="selective"][data-v="false"]', '선택약정 미적용으로 되돌림'); await H.wait(1200); }],
-    ['5', async function () { await toggle('#report [data-keep="티빙"]', '티빙을 계속 쓸 유료 서비스에서 해제 → 베이직80 최저'); await H.wait(800); await rest('#kpis .kpi.hl', 0.5, 1.15); await H.wait(3400); }],
+    ['5', async function () { await toggle('#report [data-w="tie"][data-v="max"]', '본인 결합 할인 최대'); await H.wait(600); await rest('#report .otable', 0.7, 0.55); await H.wait(3600); }],
     ['5', async function () { await toggle('#report [data-wreset]', '보고서 값으로'); await H.wait(1700); }],
-    ['6', async function () { await ask(Q_TVING, '질문: 티빙 실사용'); }],
-    ['6', async function () { await answered(); log('답변 + 다음 추천 질문'); await rest('#report', 0.78, 0.86); await H.wait(4600); }],
-    ['7', async function () { await scrollReport(null, '보고서 맨 위로', 800); flag('rec-tab', 900); await tap('#report [data-tab="usage"]', '사용량 탭'); await H.wait(3200); }],
-    ['7', async function () { await scrollReport('#report .card.wide', '서비스별 사용으로 스크롤', 1400); await H.wait(3000); }],
+    ['6', async function () { await ask(Q_OTT, '질문: 디즈니+·넷플릭스 실사용'); }],
+    ['6', async function () { await answered(); log('답변 + 다음 추천 질문'); await rest('#report', 0.78, 0.86); await H.wait(5000); }],
+    ['7', async function () { await scrollReport(null, '보고서 맨 위로', 800); flag('rec-tab', 900); await tap('#report [data-tab="usage"]', '사용량 탭'); await H.wait(3000); }],
+    ['7', async function () { await scrollReport('#report .card.wide', '서비스별 사용으로 스크롤 (디즈니+ 사용 없음)', 1400); await H.wait(3200); }],
     ['7', async function () {
-      if (params.get('bundle') !== '1') return;
+      if (params.get('bundle') === '0') return;
       await scrollReport(null, '보고서 맨 위로', 800); flag('rec-tab', 900); await tap('#report [data-tab="bundle"]', '가족결합 탭'); await H.wait(2600);
+      await scrollReport(function () { return document.querySelectorAll('#tabBody .table-wrap')[1]; }, '가족 회선별 결합 할인', 1200); await H.wait(2800);
     }],
     ['7', async function () { await scrollReport(null, '보고서 맨 위로', 900); flag('rec-tab', 900); await tap('#report [data-tab="options"]', '선택지 비교 탭으로'); await H.wait(900); }],
     // 마지막 질문: 고객에게 보낼 문자 초안. 긴 답은 채팅 안에서 천천히 내려 읽힙니다

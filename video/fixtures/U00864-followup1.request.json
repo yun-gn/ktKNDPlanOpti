@@ -1,0 +1,11 @@
+{
+  "action": "sendMessage",
+  "sessionId": "ac9632d8-530e-493f-9758-01fb0956b64c",
+  "chatInput": "디즈니+는 진짜 안 봐? 넷플릭스는 얼마나 봐?",
+  "userMessage": "디즈니+는 진짜 안 봐? 넷플릭스는 얼마나 봐?",
+  "userId": "U00864",
+  "startDate": "2026-04-12",
+  "endDate": "2026-10-12",
+  "intent": "",
+  "contractMonths": 12
+}

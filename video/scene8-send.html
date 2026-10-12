@@ -72,7 +72,11 @@ button, textarea, select { font: inherit; color: inherit; }
 .edit textarea { height: 100%; }
 .phone { border: 1px solid var(--line); border-radius: 26px; background: #F2F3F5; padding: 16px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
 .phone .who { text-align: center; font-size: 12px; color: var(--muted); }
-.phone .bubble { background: #fff; border-radius: 16px 16px 16px 4px; padding: 12px 14px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 1px 2px rgba(0,0,0,0.06); max-height: 100%; overflow: hidden; }
+.phone .bubble { background: #fff; border-radius: 16px 16px 16px 4px; padding: 12px 14px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 1px 2px rgba(0,0,0,0.06); max-height: 100%; overflow-y: auto; scrollbar-width: none; scroll-behavior: smooth; }
+/* 미리보기에서 방금 바뀐 곳을 잠깐 표시합니다 */
+@keyframes changed { 0%, 60% { background: #FFE08A; } 100% { background: transparent; } }
+.phone mark { background: transparent; color: inherit; border-radius: 3px; animation: changed 1.8s ease; }
+.phone mark.cut { display: inline-block; width: 2px; height: 1.1em; vertical-align: -0.15em; background: var(--accent); animation: changed 1.8s ease; }
 .phone .bubble:empty { display: none; }
 .compose .to { margin-left: auto; font-size: 13px; color: var(--muted); }
 .compose textarea { flex: 1; min-height: 180px; resize: none; border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; background: var(--sunken); line-height: 1.7; font-size: 15px; outline: none; }
@@ -122,10 +126,10 @@ textarea.pasted { animation: pasted 1.6s ease; }
       <table>
         <thead><tr><th>고객 ID</th><th>고객</th><th>현재 요금제</th><th>KT 옵티 분석</th><th>추천</th><th>상태</th></tr></thead>
         <tbody id="logBody">
-          <tr aria-selected="true"><td class="mono">U00603</td><td>김*서</td><td>초이스90</td><td><span class="mono">A-2317</span> · 2026-04 ~ 09</td><td>현재 구성 유지</td><td><span class="badge" id="status">작성 중</span></td></tr>
+          <tr aria-selected="true"><td class="mono">U00864</td><td>이*서</td><td>초이스 더블</td><td><span class="mono">A-2321</span> · 2026-04 ~ 09</td><td>초이스90 + 가족결합 · 월 −41,301원</td><td><span class="badge" id="status">작성 중</span></td></tr>
+          <tr><td class="mono">U00603</td><td>김*서</td><td>초이스90</td><td class="muted">분석 전</td><td class="muted">−</td><td><span class="badge">대기</span></td></tr>
           <tr><td class="mono">U09832</td><td>윤*준</td><td>베이직21GB(이월)</td><td class="muted">분석 전</td><td class="muted">−</td><td><span class="badge">대기</span></td></tr>
           <tr><td class="mono">U09327</td><td>임*윤</td><td>초이스130</td><td class="muted">분석 전</td><td class="muted">−</td><td><span class="badge">대기</span></td></tr>
-          <tr><td class="mono">U00864</td><td>이*서</td><td>초이스 더블</td><td class="muted">분석 전</td><td class="muted">−</td><td><span class="badge">대기</span></td></tr>
         </tbody>
       </table>
     </section>
@@ -133,23 +137,23 @@ textarea.pasted { animation: pasted 1.6s ease; }
     <div class="detail">
       <section class="card summary" aria-label="고객 요약">
         <div>
-          <div class="name">김*서</div>
-          <div class="meta">U00603 · 결합 없음 · KT 인터넷 없음</div>
+          <div class="name">이*서</div>
+          <div class="meta">U00864 · KT 인터넷 보유 · 결합 없음 · 가족 4회선</div>
         </div>
         <div>
           <div class="label">현재 상품</div>
-          <div>초이스90 · 월 90,000원</div>
-          <div class="meta">티빙 · 월평균 176.8GB (2026-04 ~ 09)</div>
+          <div>초이스 더블 · 월 120,000원</div>
+          <div class="meta">디즈니+ · 단말보험 할인 · 월평균 163.2GB (2026-04 ~ 09)</div>
         </div>
         <div class="from">
           <div class="label">KT 옵티 분석 결과</div>
-          <div>추천: <strong>현재 구성 유지</strong> · 초이스90 [티빙]</div>
+          <div>추천: <strong>초이스90 [넷플릭스] + 프리미엄 가족결합</strong></div>
           <ul class="why">
-            <li>최종 청구 99,900원으로 세 선택지 중 가장 낮음</li>
-            <li>베이직80: 월정액은 10,000원 낮지만 티빙 별도 구독으로 청구 +3,500원</li>
-            <li>티빙 월평균 14.36GB, 6개월 모두 사용</li>
+            <li>본인 월 154,000원 → 112,699원 (−41,301원)</li>
+            <li>가족 전체 월 −78,653원 (KT 인터넷 결합 포함)</li>
+            <li>디즈니+ 6개월 사용 0GB · 넷플릭스 월 20.66GB 별도 결제</li>
           </ul>
-          <div class="meta">분석 A-2317 · 2026-10-12</div>
+          <div class="meta">분석 A-2321 · 2026-10-12</div>
         </div>
       </section>
 
@@ -159,7 +163,7 @@ textarea.pasted { animation: pasted 1.6s ease; }
           <select aria-label="발송 채널"><option>LMS</option><option>알림톡</option></select>
           <span class="label">템플릿</span>
           <select class="tpl" aria-label="템플릿"><option>요금제 점검 결과 안내 (정보성)</option></select>
-          <span class="to">받는 사람: 김*서 · 010-****-**12</span>
+          <span class="to">받는 사람: 이*서 · 010-****-**47</span>
         </div>
         <div class="edit">
           <textarea id="body" aria-label="문자 본문" spellcheck="false" placeholder="KT 옵티가 쓴 초안을 붙여 넣거나 직접 입력하세요"></textarea>
@@ -188,7 +192,7 @@ textarea.pasted { animation: pasted 1.6s ease; }
     </div>
   </div>
 </div>
-<div class="toast" id="toast" role="status">김*서 고객님께 문자를 보냈습니다</div>
+<div class="toast" id="toast" role="status">이*서 고객님께 문자를 보냈습니다</div>
 
 <script>
 (function () {
@@ -202,14 +206,30 @@ textarea.pasted { animation: pasted 1.6s ease; }
   function sync() {
     var b = bytes(body.value);
     count.innerHTML = '<b>' + (b > 90 ? 'LMS' : 'SMS') + '</b> · ' + b.toLocaleString('ko-KR') + ' / ' + (b > 90 ? '2,000' : '90') + ' byte';
-    $('preview').textContent = body.value ? '[Web발신]\n' + body.value.replace(/#\{고객명\}/g, '김수서') : '';
+    preview();
+  }
+  // 휴대폰 미리보기: #{고객명}은 실제 이름으로. 방금 바뀐 곳은 노랗게 잠깐 표시하고 보이도록 스크롤합니다
+  // (지운 곳은 빨간 세로선). 처음 붙여 넣을 때는 표시하지 않습니다
+  var shown = '';
+  function esc(t) { return t.replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+  function preview() {
+    var pv = $('preview'), next = body.value ? '[Web발신]\n' + body.value.replace(/#\{고객명\}/g, '이현서') : '';
+    if (!shown || !next) { pv.textContent = next; shown = next; return; }
+    var a = 0, b = 0;
+    while (a < shown.length && a < next.length && shown[a] === next[a]) a++;
+    while (b < shown.length - a && b < next.length - a && shown[shown.length - 1 - b] === next[next.length - 1 - b]) b++;
+    var mid = next.slice(a, next.length - b);
+    pv.innerHTML = esc(next.slice(0, a)) + (mid ? '<mark>' + esc(mid) + '</mark>' : '<mark class="cut"></mark>') + esc(next.slice(next.length - b));
+    shown = next;
+    var m = pv.querySelector('mark');
+    if (m) pv.scrollTop = Math.max(0, m.getBoundingClientRect().top - pv.getBoundingClientRect().top + pv.scrollTop - pv.clientHeight / 3);
   }
   body.addEventListener('input', sync);
 
-  // 초안: KT 옵티 채팅 답의 --- 아래 부분 (video/fixtures/U00603-message.response.json). 서버 없이 열면 아래 사본을 씁니다
+  // 초안: KT 옵티 채팅 답의 --- 아래 부분 (video/fixtures/U00864-message.response.json). 서버 없이 열면 아래 사본을 씁니다
   var FALLBACK = '[KT] 요금제 점검 결과 안내\n\n안녕하세요, 고객님. 요청하신 요금제 점검 결과를 알려 드립니다.';
   function loadDraft() {
-    return fetch('fixtures/U00603-message.response.json').then(function (r) { return r.json(); }).then(function (o) {
+    return fetch('fixtures/U00864-message.response.json').then(function (r) { return r.json(); }).then(function (o) {
       var out = String(o.output || o.reply || ''), cut = out.split(/\n-{3,}\n/);
       return (cut.length > 1 ? cut.slice(1).join('\n') : out).replace(/\*\*/g, '').trim();
     }).catch(function () { return FALLBACK; });
@@ -217,7 +237,7 @@ textarea.pasted { animation: pasted 1.6s ease; }
 
   // 발송 → 확인 → 완료 (화면만 바뀝니다. 실제 전송 없음)
   $('send').addEventListener('click', function () {
-    $('dlgText').textContent = '김*서 고객님께 LMS 1건을 보냅니다. ' + bytes(body.value).toLocaleString('ko-KR') + 'byte';
+    $('dlgText').textContent = '이*서 고객님께 LMS 1건을 보냅니다. ' + bytes(body.value).toLocaleString('ko-KR') + 'byte';
     $('dim').classList.add('on');
   });
   $('cancel').addEventListener('click', function () { $('dim').classList.remove('on'); });

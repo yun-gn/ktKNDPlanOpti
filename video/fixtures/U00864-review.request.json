@@ -1,9 +1,9 @@
 {
   "action": "sendMessage",
-  "sessionId": "bd025ebf-2e91-4eda-90c1-153a2952395f",
+  "sessionId": "ac9632d8-530e-493f-9758-01fb0956b64c",
   "chatInput": "이 고객의 요금제가 적정한지 검토해줘",
   "userMessage": "이 고객의 요금제가 적정한지 검토해줘",
-  "userId": "U00603",
+  "userId": "U00864",
   "startDate": "2026-04-12",
   "endDate": "2026-10-12",
   "intent": "review",
