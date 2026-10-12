@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene 8 · 안내 문자 발송</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="human.js"></script>
+<style>
+/* 영상용 CRM 발송 화면. KT 옵티와 다른 도구라 색은 중립, 강조만 KT 레드. 1920×1080 녹화 기준
+   재생: ?play=1 바로 · ?play=wait 부모 창(flow.html)의 신호를 기다림. human.js 옵션(speed · type · cursor)을 같이 씁니다
+   흐름: KT 옵티가 쓴 문자 초안 붙여넣기 → 고객명 변수 넣기 → 선택약정 문장 지우기 → 발송 → 확인 → 발송 완료 */
+:root {
+  color-scheme: light;
+  --bg: #EEF0F3;
+  --surface: #FFFFFF;
+  --sunken: #F6F7F9;
+  --ink: #15171C;
+  --muted: #5B6270;
+  --line: #DDE0E6;
+  --nav: #23262E;
+  --accent: #E4002B;
+  --ok: #0C7A55;
+  --font-body: 'Noto Sans KR', 'Malgun Gothic', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.55; }
+button, textarea, select { font: inherit; color: inherit; }
+.label { font-size: 12px; color: var(--muted); }
+.muted { color: var(--muted); }
+
+.shell { height: 100%; min-width: 1280px; display: grid; grid-template-columns: 200px minmax(0, 1fr); } /* 좁은 창에서 무너지지 않게 */
+
+.nav { background: var(--nav); color: #C9CDD6; padding: 16px 10px; display: flex; flex-direction: column; gap: 4px; }
+.nav .brand { color: #fff; font-weight: 700; padding: 4px 10px 14px; }
+.nav a { color: inherit; text-decoration: none; padding: 7px 10px; border-radius: 6px; }
+.nav a.on { background: rgba(255,255,255,0.1); color: #fff; }
+
+.main { min-width: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 14px; padding: 18px 22px; }
+.head { display: flex; align-items: baseline; gap: 12px; }
+.head h1 { font-size: 20px; margin: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+
+/* 위: 최적화 요청 고객 */
+.log table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.log th, .log td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.log th { font-weight: 500; color: var(--muted); font-size: 12px; }
+.log tr:last-child td { border-bottom: 0; }
+.log tbody tr[aria-selected="true"] { background: #FDECEF; box-shadow: inset 3px 0 0 var(--accent); }
+.mono { font-family: var(--font-mono); font-size: 12.5px; }
+.badge { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.badge.sent { border-color: var(--ok); color: var(--ok); animation: pop 0.35s ease both; }
+
+/* 아래: 분석 요약 + 문자 작성 */
+.detail { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 14px; min-height: 0; }
+.summary { padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.summary .name { font-size: 20px; font-weight: 700; }
+.summary .meta { color: var(--muted); font-size: 13px; }
+.summary .from { border-top: 1px dashed var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.why { margin: 0; padding-left: 18px; font-size: 13px; display: flex; flex-direction: column; gap: 2px; }
+
+.compose { padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.compose .row { display: flex; gap: 10px; align-items: center; }
+.compose select { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
+.compose select.tpl { min-width: 250px; }
+/* 편집기와 휴대폰 미리보기 */
+.edit { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 14px; }
+.edit textarea { height: 100%; }
+.phone { border: 1px solid var(--line); border-radius: 26px; background: #F2F3F5; padding: 16px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
+.phone .who { text-align: center; font-size: 12px; color: var(--muted); }
+.phone .bubble { background: #fff; border-radius: 16px 16px 16px 4px; padding: 12px 14px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 1px 2px rgba(0,0,0,0.06); max-height: 100%; overflow: hidden; }
+.phone .bubble:empty { display: none; }
+.compose .to { margin-left: auto; font-size: 13px; color: var(--muted); }
+.compose textarea { flex: 1; min-height: 180px; resize: none; border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; background: var(--sunken); line-height: 1.7; font-size: 15px; outline: none; }
+.compose textarea:focus { border-color: #B8BDC8; background: var(--surface); }
+.compose textarea::selection { background: #FFD5DD; }
+.compose .foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.count b { color: var(--ink); font-weight: 500; }
+.btns { display: flex; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 18px; font-weight: 500; cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn:disabled { opacity: 0.55; cursor: default; }
+@keyframes pasted { from { background-color: #FFF4C2; } }
+textarea.pasted { animation: pasted 1.6s ease; }
+@keyframes pop { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: none; opacity: 1; } }
+
+/* 발송 확인 창 */
+.dim { position: fixed; inset: 0; background: rgba(21,23,28,0.35); display: grid; place-items: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.dim.on { opacity: 1; pointer-events: auto; }
+.dialog { width: 380px; background: var(--surface); border-radius: 12px; padding: 22px 22px 18px; box-shadow: 0 12px 40px rgba(0,0,0,0.18); transform: translateY(8px); transition: transform 0.2s; }
+.dim.on .dialog { transform: none; }
+.dialog h2 { margin: 0 0 8px; font-size: 17px; }
+.dialog p { margin: 0 0 18px; color: var(--muted); }
+.dialog .btns { justify-content: flex-end; }
+.toast { position: fixed; left: 50%; bottom: 36px; transform: translate(-50%, 12px); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px; opacity: 0; transition: opacity 0.25s, transform 0.25s; }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="nav" aria-label="CRM 메뉴">
+    <div class="brand">고객관리</div>
+    <a href="#">고객 조회</a>
+    <a href="#" class="on">요금제 최적화 요청</a>
+    <a href="#">발송 이력</a>
+    <a href="#">템플릿</a>
+  </nav>
+
+  <div class="main">
+    <div class="head">
+      <h1>요금제 최적화 요청</h1>
+      <span class="label">요청 고객 · 발송 대기</span>
+    </div>
+
+    <!-- 고객·요금제는 index.html의 후보 고객 4명, 분석 값은 video/fixtures 보고서에서 가져왔습니다. 고객 이름은 CRM 관례대로 가립니다 -->
+    <section class="card log" aria-label="최적화 요청 고객">
+      <table>
+        <thead><tr><th>고객 ID</th><th>고객</th><th>현재 요금제</th><th>KT 옵티 분석</th><th>추천</th><th>상태</th></tr></thead>
+        <tbody id="logBody">
+          <tr aria-selected="true"><td class="mono">U00603</td><td>김*서</td><td>초이스90</td><td><span class="mono">A-2317</span> · 2026-04 ~ 09</td><td>현재 구성 유지</td><td><span class="badge" id="status">작성 중</span></td></tr>
+          <tr><td class="mono">U09832</td><td>윤*준</td><td>베이직21GB(이월)</td><td class="muted">분석 전</td><td class="muted">−</td><td><span class="badge">대기</span></td></tr>
+          <tr><td class="mono">U09327</td><td>임*윤</td><td>초이스130</td><td class="muted">분석 전</td><td class="muted">−</td><td><span class="badge">대기</span></td></tr>
+          <tr><td class="mono">U00864</td><td>이*서</td><td>초이스 더블</td><td class="muted">분석 전</td><td class="muted">−</td><td><span class="badge">대기</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div class="detail">
+      <section class="card summary" aria-label="고객 요약">
+        <div>
+          <div class="name">김*서</div>
+          <div class="meta">U00603 · 결합 없음 · KT 인터넷 없음</div>
+        </div>
+        <div>
+          <div class="label">현재 상품</div>
+          <div>초이스90 · 월 90,000원</div>
+          <div class="meta">티빙 · 월평균 176.8GB (2026-04 ~ 09)</div>
+        </div>
+        <div class="from">
+          <div class="label">KT 옵티 분석 결과</div>
+          <div>추천: <strong>현재 구성 유지</strong> · 초이스90 [티빙]</div>
+          <ul class="why">
+            <li>최종 청구 99,900원으로 세 선택지 중 가장 낮음</li>
+            <li>베이직80: 월정액은 10,000원 낮지만 티빙 별도 구독으로 청구 +3,500원</li>
+            <li>티빙 월평균 14.36GB, 6개월 모두 사용</li>
+          </ul>
+          <div class="meta">분석 A-2317 · 2026-10-12</div>
+        </div>
+      </section>
+
+      <section class="card compose" aria-label="안내 문자 작성">
+        <div class="row">
+          <span class="label">발송 채널</span>
+          <select aria-label="발송 채널"><option>LMS</option><option>알림톡</option></select>
+          <span class="label">템플릿</span>
+          <select class="tpl" aria-label="템플릿"><option>요금제 점검 결과 안내 (정보성)</option></select>
+          <span class="to">받는 사람: 김*서 · 010-****-**12</span>
+        </div>
+        <div class="edit">
+          <textarea id="body" aria-label="문자 본문" spellcheck="false" placeholder="KT 옵티가 쓴 초안을 붙여 넣거나 직접 입력하세요"></textarea>
+          <!-- 받는 사람 휴대폰에 보이는 모습. #{고객명}은 실제 이름으로 바뀝니다 -->
+          <div class="phone" aria-label="미리보기"><div class="who">미리보기 · KT</div><div class="bubble" id="preview"></div></div>
+        </div>
+        <div class="foot">
+          <span class="count" id="count"></span>
+          <div class="btns">
+            <button class="btn" type="button">임시 저장</button>
+            <button class="btn primary" type="button" id="send">발송</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="dim" id="dim">
+  <div class="dialog" role="dialog" aria-labelledby="dlgTitle">
+    <h2 id="dlgTitle">문자를 보낼까요?</h2>
+    <p id="dlgText"></p>
+    <div class="btns">
+      <button class="btn" type="button" id="cancel">취소</button>
+      <button class="btn primary" type="button" id="confirm">보내기</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status">김*서 고객님께 문자를 보냈습니다</div>
+
+<script>
+(function () {
+  'use strict';
+  var H = window.Human, params = new URLSearchParams(location.search), mode = params.get('play');
+  var $ = function (id) { return document.getElementById(id); };
+  var body = $('body'), count = $('count');
+
+  // 국내 문자 기준: 한글 2byte, 그 밖 1byte. 90byte 넘으면 LMS (2,000byte까지)
+  function bytes(s) { var n = 0; for (var i = 0; i < s.length; i++) n += s.charCodeAt(i) > 127 ? 2 : 1; return n; }
+  function sync() {
+    var b = bytes(body.value);
+    count.innerHTML = '<b>' + (b > 90 ? 'LMS' : 'SMS') + '</b> · ' + b.toLocaleString('ko-KR') + ' / ' + (b > 90 ? '2,000' : '90') + ' byte';
+    $('preview').textContent = body.value ? '[Web발신]\n' + body.value.replace(/#\{고객명\}/g, '김수서') : '';
+  }
+  body.addEventListener('input', sync);
+
+  // 초안: KT 옵티 채팅 답의 --- 아래 부분 (video/fixtures/U00603-message.response.json). 서버 없이 열면 아래 사본을 씁니다
+  var FALLBACK = '[KT] 요금제 점검 결과 안내\n\n안녕하세요, 고객님. 요청하신 요금제 점검 결과를 알려 드립니다.';
+  function loadDraft() {
+    return fetch('fixtures/U00603-message.response.json').then(function (r) { return r.json(); }).then(function (o) {
+      var out = String(o.output || o.reply || ''), cut = out.split(/\n-{3,}\n/);
+      return (cut.length > 1 ? cut.slice(1).join('\n') : out).replace(/\*\*/g, '').trim();
+    }).catch(function () { return FALLBACK; });
+  }
+
+  // 발송 → 확인 → 완료 (화면만 바뀝니다. 실제 전송 없음)
+  $('send').addEventListener('click', function () {
+    $('dlgText').textContent = '김*서 고객님께 LMS 1건을 보냅니다. ' + bytes(body.value).toLocaleString('ko-KR') + 'byte';
+    $('dim').classList.add('on');
+  });
+  $('cancel').addEventListener('click', function () { $('dim').classList.remove('on'); });
+  $('confirm').addEventListener('click', function () {
+    $('dim').classList.remove('on');
+    $('send').disabled = true;
+    body.readOnly = true;
+    $('status').textContent = '발송 완료';
+    $('status').classList.add('sent');
+    $('toast').classList.add('on');
+    setTimeout(function () { $('toast').classList.remove('on'); }, 2600);
+  });
+
+  /* ---------- 녹화 재생 ---------- */
+  // 본문 idx 위치의 글자 좌표 (커서를 그 글자로 옮길 때). 같은 모양의 숨은 상자에 글을 깔아 재어 봅니다
+  function caretAt(idx) {
+    var cs = getComputedStyle(body), m = document.createElement('div');
+    ['boxSizing', 'width', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+     'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'wordSpacing', 'wordBreak'].forEach(function (k) { m.style[k] = cs[k]; });
+    m.style.position = 'absolute'; m.style.visibility = 'hidden'; m.style.left = '-9999px'; m.style.top = '0';
+    m.style.whiteSpace = 'pre-wrap'; m.style.overflowWrap = 'break-word';
+    m.textContent = body.value.slice(0, idx);
+    var sp = document.createElement('span'); sp.textContent = body.value.slice(idx, idx + 1) || '.'; m.appendChild(sp);
+    document.body.appendChild(m);
+    var x = sp.offsetLeft, y = sp.offsetTop + sp.offsetHeight / 2;
+    document.body.removeChild(m);
+    var r = body.getBoundingClientRect();
+    return H.toOwner(r.left + x - body.scrollLeft, r.top + y - body.scrollTop);
+  }
+  var sink = null;
+  try { if (window.parent !== window && window.parent.__rec) sink = window.parent.__rec; } catch (e) { /* 다른 출처 */ }
+  function cue(action, el, at) {
+    var c = { scene: 'Scene 8', action: action };
+    if (at) { c.x = at.x; c.y = at.y; } else if (el) { var p = H.point(el); c.x = p.x; c.y = p.y; }
+    if (sink) sink.cue(c); else console.log('[scene8]', action, c.x != null ? '(' + c.x + ',' + c.y + ')' : '');
+  }
+  async function tap(el, action) { await H.moveToEl(el); cue(action, el); await H.press(); el.click(); }
+
+  async function play(draft) {
+    await H.wait(900);
+    // 1. 붙여넣기
+    H.shape('text');
+    await H.moveToEl(body, 0.3, 0.25);
+    cue('본문 클릭', body);
+    await H.press();
+    body.focus();
+    await H.act(500);
+    cue('Ctrl+V 붙여넣기');
+    body.value = draft; sync();
+    body.classList.add('pasted');
+    body.setSelectionRange(draft.length, draft.length);
+    await H.wait(2200);
+
+    // 2. 인사말에 고객명 변수 넣기: "안녕하세요, 고객님." → "안녕하세요, #{고객명} 고객님."
+    var at = body.value.indexOf('고객님.');
+    if (at >= 0) {
+      var p = caretAt(at);
+      await H.moveTo(p.x - 1, p.y);
+      cue('고객명 넣을 자리', null, p);
+      await H.press();
+      body.setSelectionRange(at, at);
+      await H.act(300);
+      var before = body.value.slice(0, at), after = body.value.slice(at);
+      await H.type(function (v) { body.value = before + v + after; body.setSelectionRange(before.length + v.length, before.length + v.length); sync(); }, '#{고객명} ');
+      await H.wait(900);
+    }
+
+    // 3. 선택약정 문장 지우기 (고객이 받을 수 있는지 모르는 할인이라 뺍니다): 드래그로 고르고 Backspace
+    var s = body.value.indexOf(' 선택약정'), e = s >= 0 ? body.value.indexOf('.', s) + 1 : -1;
+    if (s >= 0 && e > s) {
+      var a = caretAt(s + 1);
+      await H.moveTo(a.x - 2, a.y);
+      cue('선택약정 문장 드래그 시작', null, a);
+      H._cursor().el.classList.add('down');
+      for (var i = s + 1; i <= e; i += 3) {
+        var q = caretAt(Math.min(i, e - 1));
+        body.setSelectionRange(s, Math.min(i, e));
+        await H.moveTo(q.x, q.y, 45);
+      }
+      body.setSelectionRange(s, e);
+      H._cursor().el.classList.remove('down');
+      await H.wait(700);
+      cue('Backspace');
+      body.value = body.value.slice(0, s) + body.value.slice(e);
+      body.setSelectionRange(s, s);
+      sync();
+      await H.wait(1400);
+    }
+
+    // 4. 발송 → 확인
+    H.shape('arrow');
+    await tap($('send'), '발송');
+    await H.wait(900);
+    await tap($('confirm'), '보내기 확인');
+    await H.wait(2800);
+    cue('끝');
+    if (window.parent !== window) window.parent.postMessage({ type: 'rec-done', from: 'scene8' }, location.origin);
+  }
+
+  var ready = loadDraft();
+  if (mode === '1') window.addEventListener('load', function () { Promise.all([ready, document.fonts.ready]).then(function (r) { play(r[0]); }); });
+  else if (mode === 'wait') window.addEventListener('message', function on(e) {
+    if (e.origin !== location.origin || !e.data || e.data.type !== 'rec-start') return;
+    window.removeEventListener('message', on);
+    ready.then(play);
+  });
+  else ready.then(function (d) { body.value = d; sync(); });   // 재생하지 않을 때는 초안을 채워 둡니다
+  sync();
+})();
+</script>
+</body>
+</html>

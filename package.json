@@ -5,7 +5,8 @@
   "description": "요금제 개인화 채팅 UI (n8n 연결)",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "video": "node video/serve.js"
   },
   "engines": {
     "node": ">=20.3"

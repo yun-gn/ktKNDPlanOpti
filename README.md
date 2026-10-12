@@ -16,6 +16,7 @@ KT 요금제 상담 직원용 화면입니다. 고객 한 명의 요금제를 �
 | `server.js` | 두 페이지를 제공하고 `/api/chat`을 n8n으로 전달합니다 (의존성 없음) |
 | `package.json`, `railway.json` | `npm start`로 실행. Railway가 같은 명령으로 배포합니다 |
 | `kt-chat-connected.html` | 예전 발표용 데모 (현재 사용하지 않음) |
+| `video/` | 튜토리얼 영상 녹화용 화면. 아래 [영상 녹화](#영상-녹화) 참고 |
 
 ## 실행
 
@@ -33,6 +34,33 @@ npm start
 | `CHAT_AUTH` | 없음 | n8n Webhook에 인증을 켰을 때의 `Authorization` 헤더 값 |
 
 `server.js`는 시작할 때 두 HTML을 읽어 둡니다. HTML을 고친 뒤에는 서버를 다시 시작하세요.
+
+## 영상 녹화
+
+마케터용 튜토리얼 영상(약 2분 10초, Scene 1–8)을 화면 녹화로 찍을 때 씁니다. 범용 AI와의 대화부터 KT 옵티 분석, CRM 문자 발송까지 손대지 않아도 사람이 쓰는 것처럼 자동으로 진행됩니다. n8n에는 연결하지 않고, 미리 받아 영상용으로 손본 응답(`video/fixtures/`)을 씁니다. 그래서 녹화할 때마다 같은 화면이 나옵니다.
+
+```bash
+npm run video
+```
+
+1. 녹화 서버가 `http://localhost:4000`에서 열립니다. 상담 서버(`npm start`)는 켜지 않아도 됩니다
+2. 브라우저 창을 1920×1080 전체 화면(F11)으로 두고, 녹화 프로그램(OBS 등)의 **커서 캡처를 끕니다**. 화면 커서는 페이지가 직접 그립니다
+3. 녹화를 시작한 뒤 `http://localhost:4000/video/flow.html`을 엽니다. 3초 뒤 시작해 Scene 8의 발송 완료까지 진행됩니다
+4. 녹화하는 동안 브라우저 창을 맨 앞에 두세요. 가려진 창은 브라우저가 타이머를 늦춰 진행이 느려집니다
+
+| URL 옵션 | 기본 | 뜻 |
+|---|---|---|
+| `lead` | 3 | 시작 전 대기 (초). 녹화를 켤 시간이 더 필요하면 늘립니다 |
+| `speed` | 1 | 머무는 시간 배율. 3분 내레이션에 맞추려면 `1.4` 정도 |
+| `type` | 1 | 타자·커서 이동 배율. `speed`를 늘려도 타자는 그대로입니다 |
+| `cursor` | 1 | `0`이면 화면 커서를 그리지 않습니다 (편집기에서 커서를 얹을 때) |
+
+예: `http://localhost:4000/video/flow.html?lead=8&speed=1.4`
+
+- 장면만 따로 찍을 때: `http://localhost:4000/?play=1` (Scene 3–7, 실제 상담 화면), `http://localhost:4000/video/scene8-send.html?play=1` (Scene 8)
+- 클릭 위치·시각(cue)은 끝날 때 브라우저 콘솔에 나오고 Alt+C로 복사됩니다. 자막 타이밍이나 편집기 커서에 씁니다
+- 녹화 화면은 `index.html`을 고치지 않고 `video/driver.js`가 녹화 때만 덧입힙니다 (날짜 2026-10-12 고정, 제품 이름 KT 옵티, 전환 효과 등)
+- 장면 구성과 파일 설명은 [`video/README.md`](video/README.md), 응답을 어떻게 손봤는지는 [`video/fixtures/README.md`](video/fixtures/README.md)에 있습니다
 
 ## 상담 화면 (`index.html`)
 

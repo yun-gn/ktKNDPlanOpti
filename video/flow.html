@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KT 옵티 · 영상 흐름</title>
+<script src="human.js"></script>
+<style>
+/* 영상 전체 흐름 (Scene 1 → 8, 입력 없이 자동 진행). 1920×1080 녹화 기준
+   Scene 1   일부러 평범한 범용 챗봇. 질문을 입력하고, 답이 흘러나옵니다
+   Scene 2   KT 옵티 탭을 눌러 같은 창에서 전환 (미리 불러 둔 실제 index.html)
+   Scene 3-7 driver.js가 실제 화면을 진행합니다
+   Scene 8   CRM 발송 화면으로 교차 전환
+   URL 옵션: lead=3 (시작 전 대기 초) · speed=1 (머무는 시간 배율) · type=1 (타자·커서 이동 배율) · cursor=0 (화면 커서 끄기) */
+:root {
+  color-scheme: light;
+  --bg: #FFFFFF;
+  --side: #F7F7F8;
+  --ink: #202123;
+  --muted: #6E6E80;
+  --line: #E5E5E5;
+  --user-bg: #F0F0F0;
+  --tab-on: #202123;
+  --kt: #E4002B;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', sans-serif; font-size: 16px; line-height: 1.6; overflow: hidden; }
+
+.shell { height: 100%; display: grid; grid-template-columns: 240px minmax(0, 1fr); }
+
+/* 왼쪽: 대화 목록 */
+.side { background: var(--side); border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.side .new { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
+.side .item { padding: 6px 10px; border-radius: 6px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side .item.on { background: #ECECF1; color: var(--ink); }
+
+.main { min-width: 0; display: flex; flex-direction: column; }
+
+/* 상단: 도구 선택 탭. ChatGPT의 GPT 전환처럼 같은 창에서 바뀝니다 */
+.tabs { display: flex; align-items: center; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.tab { border: 0; background: none; font: inherit; font-size: 14px; color: var(--muted); padding: 6px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: background-color 0.2s, color 0.2s; }
+.tab:hover, .tab.press { background: #E3E3E8; }
+.tab[aria-selected="true"] { color: var(--tab-on); background: #ECECF1; font-weight: 600; }
+.tab .dot { width: 8px; height: 8px; border-radius: 50%; background: #10A37F; }
+.tab .dot.kt { background: var(--kt); }
+.tabs .more { margin-left: auto; color: var(--muted); font-size: 13px; }
+
+/* 두 화면을 겹쳐 두고 교차 전환합니다 */
+.stage { position: relative; flex: 1; min-height: 0; }
+.view { position: absolute; inset: 0; transition: opacity 0.6s ease; }
+.view[hidden] { display: block; opacity: 0; pointer-events: none; }
+
+/* 범용 챗봇 */
+.generic { display: flex; flex-direction: column; }
+.feed { flex: 1; overflow-y: auto; padding: 28px 0; }
+.msg { max-width: 760px; margin: 0 auto 22px; padding: 0 24px; display: flex; flex-direction: column; animation: rise 0.35s ease both; }
+.msg.user { align-items: flex-end; }
+.msg.user .body { background: var(--user-bg); border-radius: 18px; padding: 10px 16px; max-width: 80%; }
+.msg.ai .body { max-width: 100%; }
+.msg .body p { margin: 0 0 8px; }
+.msg .body p:last-child { margin-bottom: 0; }
+.msg .body ul { margin: 0 0 8px; padding-left: 22px; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.thinking { display: flex; gap: 5px; padding: 8px 0; }
+.thinking i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); animation: blink 1.1s ease-in-out infinite; }
+.thinking i:nth-child(2) { animation-delay: 0.15s; }
+.thinking i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+
+.composer { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 24px 22px; }
+.composer .box { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 24px; padding: 8px 8px 8px 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); transition: border-color 0.2s; }
+.composer .box.typing { border-color: #C9C9D1; }
+.composer .text { flex: 1; min-height: 26px; }
+.composer .text:empty::before { content: '메시지를 입력하세요'; color: var(--muted); }
+.composer .box.typing .text::after { content: ''; display: inline-block; width: 1px; height: 1.1em; background: var(--ink); margin-left: 1px; vertical-align: -0.15em; animation: caret 1s step-end infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.composer .send { width: 32px; height: 32px; border-radius: 50%; background: #D9D9E0; color: #fff; display: grid; place-items: center; font-size: 16px; transition: background-color 0.2s, transform 0.15s; }
+.composer .box.typing .send { background: var(--ink); }
+.composer .send.press { transform: scale(0.9); }
+.composer .note { text-align: center; font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+/* KT 옵티: 실제 제품(index.html)을 그대로 띄웁니다 */
+.opti iframe, .crm iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+/* Scene 8: 다른 도구라 창 전체를 덮으며 교차 전환합니다 */
+.crm { position: fixed; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.8s ease; background: #EEF0F3; }
+.crm.on { opacity: 1; pointer-events: auto; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side" aria-label="대화 목록">
+    <div class="new">+ 새 채팅</div>
+    <div class="item on">고객 요금제 추천</div>
+    <div class="item">캠페인 문구 다듬기</div>
+    <div class="item">고객 문의 답변 초안</div>
+  </aside>
+
+  <div class="main">
+    <nav class="tabs" role="tablist" aria-label="도구 선택">
+      <button class="tab" role="tab" id="tabGeneric" aria-selected="true" aria-controls="viewGeneric"><span class="dot"></span>AI 어시스턴트</button>
+      <button class="tab" role="tab" id="tabOpti" aria-selected="false" aria-controls="viewOpti"><span class="dot kt"></span>KT 옵티</button>
+      <span class="more">+ 도구 더보기</span>
+    </nav>
+
+    <div class="stage">
+      <!-- Scene 1: 범용 AI와의 막힌 대화 -->
+      <section class="view generic" id="viewGeneric" role="tabpanel" aria-labelledby="tabGeneric">
+        <div class="feed" id="feed"></div>
+        <div class="composer">
+          <div class="box" id="box"><span class="text" id="draft"></span><span class="send" id="sendBtn" aria-hidden="true">↑</span></div>
+          <div class="note">AI는 실수를 할 수 있습니다.</div>
+        </div>
+      </section>
+
+      <!-- Scene 2–7: 실제 제품. 처음부터 불러 두고 신호를 받으면 driver.js가 시작합니다 -->
+      <section class="view opti" id="viewOpti" role="tabpanel" aria-labelledby="tabOpti" hidden>
+        <iframe id="optiFrame" title="KT 옵티" data-src="../index.html?play=wait"></iframe>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 8 -->
+<div class="crm" id="crm"><iframe id="crmFrame" title="CRM 발송" data-src="scene8-send.html?play=wait&amp;fill=paste"></iframe></div>
+
+<script>
+(function () {
+  'use strict';
+  var params = new URLSearchParams(location.search), H = window.Human;
+  var lead = (Number(params.get('lead')) || 3) * 1000;
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* cue: 모든 장면(이 창, 제품 iframe, CRM iframe)의 클릭 위치·시각을 한 시간축으로 모읍니다. 편집기에서 커서를 다시 얹을 때 씁니다 */
+  var rec = window.__rec = {
+    t0: 0, cues: [],
+    cue: function (c) {
+      c.t = Date.now() - rec.t0; rec.cues.push(c);
+      console.log('[flow]', (c.t / 1000).toFixed(2) + 's', c.scene, c.action, c.x != null ? '(' + c.x + ',' + c.y + ')' : '');
+    }
+  };
+  function cue(scene, action, el) {
+    var c = { scene: scene, action: action };
+    if (el) { var p = H.point(el); c.x = p.x; c.y = p.y; }
+    rec.cue(c);
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.altKey && (e.key === 'c' || e.key === 'C')) navigator.clipboard.writeText(JSON.stringify({ devicePixelRatio: devicePixelRatio, cues: rec.cues }, null, 1));
+  });
+
+  /* Scene 1 대본. 베이직80 값은 video/fixtures 보고서의 실제 선택지입니다 */
+  var SCRIPT = [
+    { who: 'user', text: 'U00603 고객 요금제 추천해줘. 지금 초이스90 쓰고 월평균 176.8GB 써.' },
+    { who: 'ai', blocks: [
+      ['p', '이 고객은 데이터를 많이 쓰는 편이네요. 데이터 위주로 보면 아래 요금제를 추천드립니다.'],
+      ['li', '베이직80: 데이터 무제한, 월 80,000원'],
+      ['p', '지금보다 월정액이 10,000원 낮아지고, 데이터를 많이 쓰는 고객에게 잘 맞는 요금제입니다.'] ] },
+    { who: 'user', text: '이 고객 티빙 쓰는데? 베이직80으로 바꾸면 티빙 혜택 없어지잖아.' },
+    { who: 'ai', blocks: [
+      ['p', '그렇군요. 더 정확하게 추천해 드리려면 아래 정보가 필요합니다. 알려 주시겠어요?'],
+      ['li', '이용 중인 OTT 서비스와 이용 빈도'],
+      ['li', '가족 결합 여부'],
+      ['li', '약정 상태와 남은 기간'] ] }
+  ];
+  var feed = $('feed'), box = $('box'), draft = $('draft'), sendBtn = $('sendBtn');
+  function addMsg(who) {
+    var m = document.createElement('div');
+    m.className = 'msg ' + who;
+    m.innerHTML = '<div class="body"></div>';
+    feed.appendChild(m);
+    feed.scrollTop = feed.scrollHeight;
+    return m.querySelector('.body');
+  }
+  // 입력창을 눌러 한글로 입력하고 Enter로 보냅니다
+  async function typeUser(text) {
+    await H.moveToEl(box, 0.35, 0.5);
+    H.shape('text');
+    cue('Scene 1', '입력창', box);
+    await H.press();
+    box.classList.add('typing');
+    await H.act(300);
+    await H.type(function (v) { draft.textContent = v; }, text);
+    await H.act(450);
+    cue('Scene 1', 'Enter 전송');
+    sendBtn.classList.add('press'); await H.act(120); sendBtn.classList.remove('press');
+    draft.textContent = ''; box.classList.remove('typing');
+    var p = document.createElement('p'); p.textContent = text;
+    addMsg('user').appendChild(p);
+    // 답을 읽는 동안 커서는 대화 쪽으로 비켜 둡니다
+    H.shape('arrow');
+    H.moveToEl(feed, 0.78, 0.5);
+  }
+  async function streamAi(blocks) {
+    var body = addMsg('ai');
+    body.innerHTML = '<div class="thinking"><i></i><i></i><i></i></div>';
+    await H.wait(1100);
+    body.innerHTML = '';
+    var ul = null;
+    for (var b = 0; b < blocks.length; b++) {
+      var tag = blocks[b][0], text = blocks[b][1], el = document.createElement(tag);
+      if (tag === 'li') { if (!ul) { ul = document.createElement('ul'); body.appendChild(ul); } ul.appendChild(el); }
+      else { ul = null; body.appendChild(el); }
+      // 범용 챗봇처럼 몇 글자씩 흘러나옵니다
+      for (var i = 0; i < text.length; i += 2) { el.textContent = text.slice(0, i + 2); feed.scrollTop = feed.scrollHeight; await H.act(22); }
+      await H.act(120);
+    }
+  }
+
+  function select(opti) {
+    $('tabGeneric').setAttribute('aria-selected', String(!opti));
+    $('tabOpti').setAttribute('aria-selected', String(opti));
+    $('viewGeneric').hidden = opti;
+    $('viewOpti').hidden = !opti;
+  }
+  function loaded(frame) { return new Promise(function (r) { frame.addEventListener('load', function () { r(); }, { once: true }); }); }
+  function doneFrom(from) {
+    return new Promise(function (r) {
+      window.addEventListener('message', function on(e) {
+        if (e.origin === location.origin && e.data && e.data.type === 'rec-done' && e.data.from === from) { window.removeEventListener('message', on); r(); }
+      });
+    });
+  }
+  function start(frame) { frame.contentWindow.postMessage({ type: 'rec-start' }, location.origin); }
+
+  async function play() {
+    var opti = $('optiFrame'), crm = $('crmFrame');
+    // 두 화면을 미리 불러 둡니다. 속도·커서 옵션은 각 화면에도 넘깁니다
+    var pass = ['speed', 'type', 'cursor'].filter(function (k) { return params.has(k); }).map(function (k) { return '&' + k + '=' + encodeURIComponent(params.get(k)); }).join('');
+    var ready = Promise.all([document.fonts.ready, loaded(opti), loaded(crm)]);
+    [opti, crm].forEach(function (f) { f.src = f.dataset.src + pass; });
+    H._cursor();
+    await ready;
+    await H.wait(lead / H.speed);
+    rec.t0 = Date.now();
+    cue('Scene 1', '시작');
+    // Scene 1
+    for (var s = 0; s < SCRIPT.length; s++) {
+      if (SCRIPT[s].who === 'user') await typeUser(SCRIPT[s].text); else await streamAi(SCRIPT[s].blocks);
+      await H.wait(s === SCRIPT.length - 1 ? 2400 : 800);
+    }
+    // Scene 2: 같은 창에서 KT 옵티로
+    var tab = $('tabOpti');
+    await H.moveToEl(tab);
+    tab.classList.add('press');
+    await H.wait(250);
+    cue('Scene 2', 'KT 옵티 탭', tab);
+    await H.press();
+    tab.classList.remove('press');
+    select(true);
+    await H.wait(700);
+    // Scene 3–7: driver.js
+    var optiDone = doneFrom('opti');
+    start(opti);
+    await optiDone;
+    // Scene 8
+    await H.wait(900);
+    cue('Scene 8', 'CRM 화면으로 전환');
+    $('crm').classList.add('on');
+    await H.wait(1000);
+    var crmDone = doneFrom('scene8');
+    start(crm);
+    await crmDone;
+    cue('end', '끝');
+    console.log('[flow] cue (Alt+C로 복사):\n' + JSON.stringify(rec.cues));
+  }
+  play();
+})();
+</script>
+</body>
+</html>

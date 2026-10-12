@@ -1,0 +1,11 @@
+{
+  "action": "sendMessage",
+  "sessionId": "bd025ebf-2e91-4eda-90c1-153a2952395f",
+  "chatInput": "이 고객의 요금제가 적정한지 검토해줘",
+  "userMessage": "이 고객의 요금제가 적정한지 검토해줘",
+  "userId": "U00603",
+  "startDate": "2026-04-12",
+  "endDate": "2026-10-12",
+  "intent": "review",
+  "contractMonths": 12
+}

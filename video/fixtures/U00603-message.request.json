@@ -1,0 +1,11 @@
+{
+  "action": "sendMessage",
+  "sessionId": "bd025ebf-2e91-4eda-90c1-153a2952395f",
+  "chatInput": "이 고객한테 보낼 안내 문자 써줘",
+  "userMessage": "이 고객한테 보낼 안내 문자 써줘",
+  "userId": "U00603",
+  "startDate": "2026-04-12",
+  "endDate": "2026-10-12",
+  "intent": "",
+  "contractMonths": 12
+}
